@@ -41,14 +41,20 @@ export async function getCart() {
         name,
         price,
         image_url,
-        sku
+        sku,
+        category_id
       )
     `)
     .order('created_at', { ascending: true })
 
-  if (error) return []
+  if (error || !data) return []
   
-  return data.map((item) => ({
+  // 🚨 ป้องกันข้อมูล Coupling กับ Terrahome (เช่น prop, rough_wood)
+  const filteredData = data.filter(
+    (item) => !['prop', 'rough_wood'].includes(item.products?.category_id || '')
+  )
+
+  return filteredData.map((item) => ({
     ...item,
     products: {
       ...item.products,

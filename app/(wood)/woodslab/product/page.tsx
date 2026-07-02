@@ -4,19 +4,19 @@ import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react
 import { useSearchParams, useRouter } from 'next/navigation'
 
 // ✅ Import Actions สินค้า
-import { 
-  getProductDetail, 
-  getActiveDiscounts, 
+import {
+  getProductDetail,
+  getActiveDiscounts,
   getRecommendProducts,
-  getProductLikeStatus, 
-  toggleProductLike     
-} from '../../../actions/product' 
+  getProductLikeStatus,
+  toggleProductLike
+} from '../../../actions/product'
 
 // ✅ Import Actions การสั่งซื้อ
 import { addToCart, checkPaymentStatus, createDepositQR } from '@/app/actions/order'
 
 import '../woodslab.css'
- 
+
 // --- CONFIG ---
 const BUCKET = "product-images"
 const PROJECT_URL = "https://zexflchjcycxrpjkuews.supabase.co"
@@ -44,21 +44,21 @@ const escClass = (v: string) => String(v || "").toLowerCase().replace(/[^a-z0-9_
 
 // ✅ Helper ใหม่: เช็คจำนวนสต็อก (เหมือนหน้า Main)
 const getStockQty = (row: any) => {
-  if (!row?.stock || !Array.isArray(row.stock)) return 0;
+  if (!row?.stock || !Array.isArray(row.stock) || row.stock.length === 0) return 99;
   return row.stock.reduce((sum: number, item: any) => sum + (parseFloat(item.qty) || 0), 0);
 }
 
 // --- CONSTANTS ---
 const STATUS_META: any = {
-  available:  { label: "Available", canBuy: true, overlay: false },
-  on_request: { label: "มีคนกำลังสนใจ", canBuy: true, overlay: true, en: "INTERESTED", jp: "Interested" }, 
-  pending:    { label: "Booked",   canBuy: false, overlay: true, jp: "Reserved", en: "BOOKED" }, 
-  reserved:   { label: "Booked",   canBuy: false, overlay: true, jp: "Reserved", en: "BOOKED" },
-  hold:       { label: "Booked",   canBuy: false, overlay: true, jp: "Reserved", en: "BOOKED" },
-  sold:       { label: "Sold Out", canBuy: false, overlay: true, jp: "SOLD OUT", en: "SOLD OUT" },
-  archived:   { label: "Archive",  canBuy: false, overlay: false },
-  inactive:   { label: "Archive",  canBuy: false, overlay: false },
-  draft:      { label: "Draft",    canBuy: false, overlay: false },
+  available: { label: "Available", canBuy: true, overlay: false },
+  on_request: { label: "มีคนกำลังสนใจ", canBuy: true, overlay: true, en: "INTERESTED", jp: "Interested" },
+  pending: { label: "Booked", canBuy: false, overlay: true, jp: "Reserved", en: "BOOKED" },
+  reserved: { label: "Booked", canBuy: false, overlay: true, jp: "Reserved", en: "BOOKED" },
+  hold: { label: "Booked", canBuy: false, overlay: true, jp: "Reserved", en: "BOOKED" },
+  sold: { label: "Sold Out", canBuy: false, overlay: true, jp: "SOLD OUT", en: "SOLD OUT" },
+  archived: { label: "Archive", canBuy: false, overlay: false },
+  inactive: { label: "Archive", canBuy: false, overlay: false },
+  draft: { label: "Draft", canBuy: false, overlay: false },
 }
 
 // --- ICON COMPONENTS ---
@@ -77,16 +77,16 @@ function ProductContent() {
   const [product, setProduct] = useState<any>(null)
   const [discounts, setDiscounts] = useState<any[]>([])
   const [recommendations, setRecommendations] = useState<any[]>([])
-  
+
   const [activeImage, setActiveImage] = useState("")
   const [dedupImages, setDedupImages] = useState<string[]>([])
-  
+
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState("")
-  
+
   const [qty, setQty] = useState(1)
-  const [processing, setProcessing] = useState(false) 
-  const [statusMsg, setStatusMsg] = useState<{text: string, color: string} | null>(null)
+  const [processing, setProcessing] = useState(false)
+  const [statusMsg, setStatusMsg] = useState<{ text: string, color: string } | null>(null)
 
   // ❤️ Like & Auth
   const [likeCount, setLikeCount] = useState(0)
@@ -102,7 +102,7 @@ function ProductContent() {
   // Refs
   const zoomContainerRef = useRef<HTMLDivElement>(null)
   const mainImageRef = useRef<HTMLImageElement>(null)
-  
+
   // --- Redirect Login ---
   const redirectToLogin = useCallback(() => {
     const currentPath = `/woodslab/product?id=${idParam}`
@@ -117,10 +117,10 @@ function ProductContent() {
         const activeDiscounts = await getActiveDiscounts()
         setDiscounts(activeDiscounts)
         if (!idParam) { setErrorMsg("Product ID required"); return }
-        
+
         const [prod, likeData] = await Promise.all([
-            getProductDetail(idParam),
-            getProductLikeStatus(idParam) 
+          getProductDetail(idParam),
+          getProductLikeStatus(idParam)
         ])
 
         if (!prod) { setErrorMsg("Product not found"); return }
@@ -128,15 +128,15 @@ function ProductContent() {
 
         setLikeCount(likeData.count)
         setIsLiked(likeData.isLiked)
-        setIsLoggedIn((likeData as any).isLoggedIn || false) 
+        setIsLoggedIn((likeData as any).isLoggedIn || false)
 
         // Images Logic
         const s = prod.specs || {}
         const main = normalizeImg(prod.image_url) || normalizeImg(s.main_image?.url)
-        
+
         const rawExtras = Array.isArray(s.images) ? s.images : Array.isArray(s.gallery) ? s.gallery : []
         const extras = rawExtras.map((it: any) => typeof it === "string" ? normalizeImg(it) : normalizeImg(it.url || it.path)).filter(Boolean)
-        
+
         const allImgs = [main, ...extras].filter(Boolean)
         const uniqueImgs = [...new Set(allImgs)] as string[]
         setDedupImages(uniqueImgs)
@@ -157,22 +157,22 @@ function ProductContent() {
   // --- LOGIC 2: Polling ---
   useEffect(() => {
     if (showQR && idParam) {
-        timerRef.current = setInterval(async () => {
-            const res = await checkPaymentStatus(idParam)
-            if (res.success) { 
-                clearInterval(timerRef.current!)
-                setShowQR(false)
-                setProduct((prev: any) => ({ 
-                    ...prev, 
-                    status: 'pending', 
-                    specs: { ...prev.specs, pending: true } 
-                }))
-                setStatusMsg({ text: "Payment Received! Item Booked.", color: "#27ae60" })
-            }
-        }, 2000)
+      timerRef.current = setInterval(async () => {
+        const res = await checkPaymentStatus(idParam)
+        if (res.success) {
+          clearInterval(timerRef.current!)
+          setShowQR(false)
+          setProduct((prev: any) => ({
+            ...prev,
+            status: 'pending',
+            specs: { ...prev.specs, pending: true }
+          }))
+          setStatusMsg({ text: "Payment Received! Item Booked.", color: "#27ae60" })
+        }
+      }, 2000)
     }
     return () => {
-        if (timerRef.current) clearInterval(timerRef.current)
+      if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [showQR, idParam])
 
@@ -180,7 +180,7 @@ function ProductContent() {
   // ✅ LOGIC ใหม่: เช็ค stock ก่อน status (Consistency with Main Page)
   const getEffectiveStatus = useCallback((row: any) => {
     // 1. เช็คสต็อกก่อน (สำคัญที่สุด)
-   // const qty = getStockQty(row);
+    // const qty = getStockQty(row);
     //if (qty <= 0) return "sold"; // หมด
 
     // 2. ถ้ามี Legacy pending flag
@@ -189,14 +189,14 @@ function ProductContent() {
     // 3. เช็ค Status
     const st = String(row?.status || "").toLowerCase().trim()
     if (st === "draft") return "draft"
-    if (st === "on_request") return "on_request" 
-    
+    if (st === "on_request") return "on_request"
+
     // ถ้าสถานะเป็น Reserved/Pending ให้โชว์ Booked แม้จะมีของ
     if (st === "pending" || st === "reserved" || st === "hold") return "pending"
-    
+
     if (st === "inactive") return "archived"
     if (st === "active") return "available"
-    
+
     return st || "available"
   }, [])
 
@@ -209,13 +209,13 @@ function ProductContent() {
     if (!prod?.price || discounts.length === 0) return null
     const price = parseFloat(prod.price)
     const matching = discounts.filter(d => {
-       const rules = d.discount_rules || []
-       if (rules.length === 0) return true
-       return rules.some((r: any) => {
-          if (r.product_id && String(r.product_id) !== String(prod.id)) return false
-          if (price < parseFloat(r.min_subtotal || 0)) return false
-          return true
-       })
+      const rules = d.discount_rules || []
+      if (rules.length === 0) return true
+      return rules.some((r: any) => {
+        if (r.product_id && String(r.product_id) !== String(prod.id)) return false
+        if (price < parseFloat(r.min_subtotal || 0)) return false
+        return true
+      })
     })
     if (matching.length === 0) return null
     let best = null, maxSave = 0
@@ -238,7 +238,7 @@ function ProductContent() {
     const s = product.specs || {}
     const rows: any[] = []
     const HIDE = ["images", "gallery", "main_image", "description", "pending", "grade"]
-    const LABELS: any = { size:"Size", size_text:"Size", dimensions:"Dimensions", material:"Material", wood_type:"Material", finish:"Finish", grade:"Grade", origin:"Origin", panel_design:"Panel Design", panel_craft:"Panel Craft", edge_design:"Edge Design", color_craft:"Color Craft", texture_craft:"Texture Craft", brightness:"Brightness", weight:"Weight", spec_type:"Type", type:"Type", width_mm:"Width (mm)", length_mm:"Length (mm)", thickness_mm:"Thickness (mm)", width_cm:"Width (mm)", length_cm:"Length (mm)", thickness_cm:"Thickness (mm)" }
+    const LABELS: any = { size: "Size", size_text: "Size", dimensions: "Dimensions", material: "Material", wood_type: "Material", finish: "Finish", grade: "Grade", origin: "Origin", panel_design: "Panel Design", panel_craft: "Panel Craft", edge_design: "Edge Design", color_craft: "Color Craft", texture_craft: "Texture Craft", brightness: "Brightness", weight: "Weight", spec_type: "Type", type: "Type", width_mm: "Width (mm)", length_mm: "Length (mm)", thickness_mm: "Thickness (mm)", width_cm: "Width (mm)", length_cm: "Length (mm)", thickness_cm: "Thickness (mm)" }
 
     const seenLabels = new Set<string>()
     Object.entries(s).forEach(([k, v]) => {
@@ -326,84 +326,84 @@ function ProductContent() {
     setProcessing(true)
     setStatusMsg({ text: "QR Code...", color: "#3498db" })
     try {
-        const res = await createDepositQR(product.id)
-        if (res.success && res.qrImage) {
-            setQrUrl(res.qrImage)
-            setShowQR(true)
-            setStatusMsg(null)
-        } else {
-            setStatusMsg({ text: "Error: " + res.message, color: "#e74c3c" })
-        }
+      const res = await createDepositQR(product.id)
+      if (res.success && res.qrImage) {
+        setQrUrl(res.qrImage)
+        setShowQR(true)
+        setStatusMsg(null)
+      } else {
+        setStatusMsg({ text: "Error: " + res.message, color: "#e74c3c" })
+      }
     } catch (err) {
-        setStatusMsg({ text: "System Error", color: "#e74c3c" })
+      setStatusMsg({ text: "System Error", color: "#e74c3c" })
     } finally {
-        setProcessing(false)
+      setProcessing(false)
     }
   }
 
   // ✅ LOGIC 5: LIKE
   const handleToggleLike = async () => {
-      if (!isLoggedIn) { redirectToLogin(); return }
-      if (likeLoading || !product) return
-      setLikeLoading(true)
-      const prevLiked = isLiked
-      const prevCount = likeCount
-      setIsLiked(!prevLiked)
-      setLikeCount(prev => prevLiked ? prev - 1 : prev + 1)
-      try {
-          await toggleProductLike(product.id)
-      } catch (err: any) {
-          setIsLiked(prevLiked)
-          setLikeCount(prevCount)
-          if (err.message.includes("logged in")) redirectToLogin()
-      } finally {
-          setLikeLoading(false)
-      }
+    if (!isLoggedIn) { redirectToLogin(); return }
+    if (likeLoading || !product) return
+    setLikeLoading(true)
+    const prevLiked = isLiked
+    const prevCount = likeCount
+    setIsLiked(!prevLiked)
+    setLikeCount(prev => prevLiked ? prev - 1 : prev + 1)
+    try {
+      await toggleProductLike(product.id)
+    } catch (err: any) {
+      setIsLiked(prevLiked)
+      setLikeCount(prevCount)
+      if (err.message.includes("logged in")) redirectToLogin()
+    } finally {
+      setLikeLoading(false)
+    }
   }
 
   // --- RENDER HELPERS ---
   // ค้นหาฟังก์ชันนี้แล้วแก้เป็นแบบนี้ครับนาย
-const renderStatusOverlay = (meta: any) => {
-  return null; // สั่งให้ไม่ต้องวาดอะไรเลย
-}
-  
+  const renderStatusOverlay = (meta: any) => {
+    return null; // สั่งให้ไม่ต้องวาดอะไรเลย
+  }
+
   // ใช้ Logic เดียวกับหน้าหลักสำหรับการ์ดสินค้าแนะนำ
   const renderRecBadge = (status: string) => {
     const s = String(status || "").toLowerCase().trim()
     if (!s || s === "available") return null
-    
+
     const STATUS_BADGE: Record<string, any> = {
-       on_request: { text: "มีคนกำลังสนใจ", style: "pill" }, 
-       pending:    { text: "BOOKED", jp: "Reserved", style: "circle" },
-       sold:       { text: "SOLD OUT", jp: "Sold", style: "circle" }, // ✅ ให้เหมือนหน้าหลัก
-       reserved:   { text: "RESERVED", style: "pill" },
-       archived:   { text: "ARCHIVE", style: "pill" },
-       draft:      { text: "DRAFT", style: "pill" },
+      on_request: { text: "มีคนกำลังสนใจ", style: "pill" },
+      pending: { text: "BOOKED", jp: "Reserved", style: "circle" },
+      sold: { text: "SOLD OUT", jp: "Sold", style: "circle" }, // ✅ ให้เหมือนหน้าหลัก
+      reserved: { text: "RESERVED", style: "pill" },
+      archived: { text: "ARCHIVE", style: "pill" },
+      draft: { text: "DRAFT", style: "pill" },
     }
     const meta = STATUS_BADGE[s] || { text: s.toUpperCase(), style: "pill" }
     const cls = escClass(s)
 
     if (s === 'on_request') return <div className={`rec-badge on_request`}>{meta.text}</div>
     if (meta.style === 'circle') {
-       return (
-         <div className="status-overlay">
-            <div className={`status-circle ${cls}`}>
-                {meta.jp && <div className="jp">{meta.jp}</div>}
-                <div className="en">{meta.text}</div>
-            </div>
-         </div>
-       )
+      return (
+        <div className="status-overlay">
+          <div className={`status-circle ${cls}`}>
+            {meta.jp && <div className="jp">{meta.jp}</div>}
+            <div className="en">{meta.text}</div>
+          </div>
+        </div>
+      )
     }
     return null
   }
 
-  if (loading) return <div className="wrap"><div style={{textAlign:'center',padding:60,color:'#666'}}>Loading Product...</div></div>
-  if (errorMsg || !product) return <div className="wrap"><div style={{textAlign:'center',padding:40,border:'1px solid #e5e5e5'}}>{errorMsg}</div></div>
+  if (loading) return <div className="wrap"><div style={{ textAlign: 'center', padding: 60, color: '#666' }}>Loading Product...</div></div>
+  if (errorMsg || !product) return <div className="wrap"><div style={{ textAlign: 'center', padding: 40, border: '1px solid #e5e5e5' }}>{errorMsg}</div></div>
 
   const meta = getStatusMeta(product)
   const discountInfo = getDiscountInfo(product)
   const specList = getSpecRows()
-const maxStock = getStockQty(product)
+  const maxStock = getStockQty(product)
   return (
     <>
       <style jsx global>{`
@@ -652,34 +652,34 @@ const maxStock = getStockQty(product)
       {/* ✅ QR CODE MODAL */}
       {showQR && (
         <div className="qr-modal-overlay" onClick={() => setShowQR(false)}>
-            <div className="qr-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="close-qr" onClick={() => setShowQR(false)}>×</div>
-                <h3 style={{margin:0}}>Scan to Pay (Deposit)</h3>
-                <div style={{color:'#666', fontSize:'0.9rem'}}>100.00 THB</div>
-                
-                {/* รูป QR Code ที่ได้จาก Server */}
-                <img src={qrUrl} className="qr-img" alt="PromptPay QR" />
-                
-                <div style={{color: '#27ae60', fontWeight: 500}}>
-                    Waiting for payment<span className="loader-dots">...</span>
-                </div>
-                <div style={{fontSize: '0.8rem', color: '#999', marginTop: 10}}>
-                    (System will auto-detect your payment)
-                </div>
-                <button onClick={() => setShowQR(false)} style={{marginTop:15, padding:'8px 20px', border:'1px solid #ddd', background:'white', borderRadius:4, cursor:'pointer'}}>Cancel</button>
+          <div className="qr-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="close-qr" onClick={() => setShowQR(false)}>×</div>
+            <h3 style={{ margin: 0 }}>Scan to Pay (Deposit)</h3>
+            <div style={{ color: '#666', fontSize: '0.9rem' }}>100.00 THB</div>
+
+            {/* รูป QR Code ที่ได้จาก Server */}
+            <img src={qrUrl} className="qr-img" alt="PromptPay QR" />
+
+            <div style={{ color: '#27ae60', fontWeight: 500 }}>
+              Waiting for payment<span className="loader-dots">...</span>
             </div>
+            <div style={{ fontSize: '0.8rem', color: '#999', marginTop: 10 }}>
+              (System will auto-detect your payment)
+            </div>
+            <button onClick={() => setShowQR(false)} style={{ marginTop: 15, padding: '8px 20px', border: '1px solid #ddd', background: 'white', borderRadius: 4, cursor: 'pointer' }}>Cancel</button>
+          </div>
         </div>
       )}
 
       <div className="wrap">
         <div className="topbar">
-           <div className="back-link" onClick={() => router.push('/woodslab')}>← Back to Collection</div>
+          <div className="back-link" onClick={() => router.push('/woodslab')}>← Back to Collection</div>
         </div>
-  
+
         <div className="product-container">
           <div className="gallery">
             <div className="main-image-frame" id="zoomContainer" ref={zoomContainerRef} onMouseMove={handleZoom} onMouseLeave={handleLeaveZoom} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-              {activeImage ? <img src={activeImage} alt={product.name} id="mainImage" ref={mainImageRef} /> : <div style={{display:'grid',placeItems:'center',height:'100%',color:'#666'}}>No Image</div>}
+              {activeImage ? <img src={activeImage} alt={product.name} id="mainImage" ref={mainImageRef} /> : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#666' }}>No Image</div>}
               {renderStatusOverlay(meta)}
               <div className="zoom-hint">HOVER TO ZOOM</div>
               {dedupImages.length > 1 && (
@@ -702,16 +702,16 @@ const maxStock = getStockQty(product)
               ))}
             </div>
           </div>
-  
+
           <div className="details">
             <div className="p-sku">Num: {product.barcode || "—"}</div>
             <div className="p-header-row">
-                <h1 className="p-title-main">{product.name || "ติดต่อสอบถาม"}</h1>
-                <div className="like-btn-wrap" onClick={handleToggleLike} title={isLiked ? "Unlike" : "Like"}>
-                    <HeartIcon filled={isLiked} />
-                </div>
+              <h1 className="p-title-main">{product.name || "ติดต่อสอบถาม"}</h1>
+              <div className="like-btn-wrap" onClick={handleToggleLike} title={isLiked ? "Unlike" : "Like"}>
+                <HeartIcon filled={isLiked} />
+              </div>
             </div>
-  
+
             <table className="spec-table">
               <tbody>
                 {specList.map((r: any, idx: number) => (
@@ -738,124 +738,124 @@ const maxStock = getStockQty(product)
                 ))}
               </tbody>
             </table>
-  
+
             <div className="price-block">
               <div className="price">
                 {discountInfo ? (
                   <>
-                      <span className="price-old">{currency(product.price)}</span>
-                      <span className="price-new">{currency(discountInfo.newPrice)}</span>
-                      <span className="badge-discount" style={{fontSize:'0.6em', verticalAlign:'middle'}}>
-                        -{discountInfo.discount_type === 'PERCENT' ? parseFloat(discountInfo.value)+'%' : discountInfo.value}
-                      </span>
+                    <span className="price-old">{currency(product.price)}</span>
+                    <span className="price-new">{currency(discountInfo.newPrice)}</span>
+                    <span className="badge-discount" style={{ fontSize: '0.6em', verticalAlign: 'middle' }}>
+                      -{discountInfo.discount_type === 'PERCENT' ? parseFloat(discountInfo.value) + '%' : discountInfo.value}
+                    </span>
                   </>
                 ) : currency(product.price)}
               </div>
-             
+
             </div>
-  
+
             <div className="qty-row">
-  <div className="qty-control">
-    {/* ปุ่มลบ: ถ้า qty <= 1 ให้ disable ปุ่มไปเลย */}
-    <button 
-      className="qty-btn" 
-      onClick={() => setQty(Math.max(1, qty - 1))} 
-      disabled={!meta.canBuy || qty <= 1}
-    > 
-      − 
-    </button>
+              <div className="qty-control">
+                {/* ปุ่มลบ: ถ้า qty <= 1 ให้ disable ปุ่มไปเลย */}
+                <button
+                  className="qty-btn"
+                  onClick={() => setQty(Math.max(1, qty - 1))}
+                  disabled={qty <= 1}
+                >
+                  −
+                </button>
 
-    <input className="qty-input" value={qty} readOnly />
+                <input className="qty-input" value={qty} readOnly />
 
-    {/* ปุ่มบวก: เปลี่ยนจาก 99 เป็น maxStock และ disable เมื่อ qty ถึง maxStock */}
-    <button 
-      className="qty-btn" 
-      onClick={() => setQty(Math.min(maxStock, qty + 1))} 
-      disabled={!meta.canBuy || qty >= maxStock}
-    > 
-      + 
-    </button>
-  </div>
-  
-  {/* (Optional) แสดงจำนวนสต็อกให้ลูกค้าเห็นด้วยก็ได้ */}
-  <span style={{fontSize:'0.9rem', color:'var(--text-muted)'}}>
-     Unit(s) {maxStock > 0 && <span style={{fontSize:'0.8em'}}> (Available: {maxStock})</span>}
-  </span>
-</div>
-  
+                {/* ปุ่มบวก: เปลี่ยนจาก 99 เป็น maxStock และ disable เมื่อ qty ถึง maxStock */}
+                <button
+                  className="qty-btn"
+                  onClick={() => setQty(Math.min(maxStock, qty + 1))}
+                  disabled={qty >= maxStock}
+                >
+                  +
+                </button>
+              </div>
+
+              {/* (Optional) แสดงจำนวนสต็อกให้ลูกค้าเห็นด้วยก็ได้ */}
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                Unit(s) {maxStock > 0 && <span style={{ fontSize: '0.8em' }}> (Available: {maxStock})</span>}
+              </span>
+            </div>
+
             <div className="actions">
-              <button className="btn btn-primary" onClick={handleAddToCart} disabled={!meta.canBuy || processing}>
+              <button className="btn btn-primary" onClick={handleAddToCart} disabled={processing}>
                 {processing ? "Processing..." : "Add to Cart"}
               </button>
-              <button className="btn" onClick={handleDeposit} disabled={!meta.canBuy || processing}>
-                Deposit 
+              <button className="btn" onClick={handleDeposit} disabled={processing}>
+                Deposit
               </button>
             </div>
-  
+
             <div className="status-msg">
               {statusMsg ? (
-                 <span style={{color: statusMsg.color}}>{statusMsg.text}</span>
+                <span style={{ color: statusMsg.color }}>{statusMsg.text}</span>
               ) : (
-                 <>
-                   {meta.key === 'on_request' && <span style={{color:'#f39c12'}}>● {meta.label}</span>}
-                   {(meta.key === 'pending' || meta.key === 'sold') && <span>This item is {meta.label}. อยู่ในช่วงพัฒนา</span>}
-                 </>
+                <>
+                  {meta.key === 'on_request' && <span style={{ color: '#f39c12' }}>● {meta.label}</span>}
+                  {(meta.key === 'pending' || meta.key === 'sold') && <span>This item is {meta.label}. อยู่ในช่วงพัฒนา</span>}
+                </>
               )}
             </div>
-  
+
             {product.specs?.description && (
-              <div style={{marginTop:24, fontSize:'0.9rem', lineHeight:1.6, color:'var(--text-muted)'}}>
+              <div style={{ marginTop: 24, fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--text-muted)' }}>
                 {product.specs.description}
               </div>
             )}
           </div>
         </div>
-  
+
         {dedupImages.length > 0 && (
-           <section className="detail-section">
-             <div className="detail-title">Product Detail</div>
-             <div className="detail-images">
-                {dedupImages.map((u, i) => (
-                   <div key={i} className="detail-shot"><img loading="lazy" src={u} alt="detail" /></div>
-                ))}
-             </div>
-           </section>
+          <section className="detail-section">
+            <div className="detail-title">Product Detail</div>
+            <div className="detail-images">
+              {dedupImages.map((u, i) => (
+                <div key={i} className="detail-shot"><img loading="lazy" src={u} alt="detail" /></div>
+              ))}
+            </div>
+          </section>
         )}
 
         <section className="rec-section">
           <div className="rec-title">RECOMMENDED PRODUCTS</div>
           <div className="rec-grid">
-             {recommendations.length === 0 ? (
-               <div className="rec-empty" style={{gridColumn:'1/-1', textAlign:'center', color:'#666'}}>No recommended products.</div>
-             ) : (
-               recommendations.map((rec) => {
-                 const recImg = normalizeImg(rec.image_url) || normalizeImg(rec.specs?.main_image?.url)
-                 const recDiscount = getDiscountInfo(rec)
-                 const effectiveStatus = getEffectiveStatus(rec) // ✅ ใช้ status ที่ถูกต้องตาม stock
-  
-                 return (
-                   <a key={rec.id} className="rec-card" href={`/woodslab/product?id=${rec.id}`}>
-                     <div className="rec-img">
-                       {recImg ? <img src={recImg} alt={rec.name} /> : <div className="rec-noimg">No Image</div>}
-                       {renderRecBadge(effectiveStatus)}
-                     </div>
-                     <div className="rec-body">
-                       <div className="rec-name">{rec.name || "ติดต่อสอบถาม"}</div>
-                       <div className="rec-size">{getSizeText(rec.specs)}</div>
-                       <div className="rec-price">
-                          {recDiscount ? (
-                            <>
-                              <span className="price-old" style={{fontSize:'0.8em'}}>{currency(rec.price)}</span>
-                              <span className="price-new" style={{fontSize:'1em'}}>{currency(recDiscount.newPrice)}</span>
-                              <span className="badge-discount">-{recDiscount.discount_type === 'PERCENT' ? parseFloat(recDiscount.value)+'%' : recDiscount.value}</span>
-                            </>
-                          ) : currency(rec.price)}
-                       </div>
-                     </div>
-                   </a>
-                 )
-               })
-             )}
+            {recommendations.length === 0 ? (
+              <div className="rec-empty" style={{ gridColumn: '1/-1', textAlign: 'center', color: '#666' }}>No recommended products.</div>
+            ) : (
+              recommendations.map((rec) => {
+                const recImg = normalizeImg(rec.image_url) || normalizeImg(rec.specs?.main_image?.url)
+                const recDiscount = getDiscountInfo(rec)
+                const effectiveStatus = getEffectiveStatus(rec) // ✅ ใช้ status ที่ถูกต้องตาม stock
+
+                return (
+                  <a key={rec.id} className="rec-card" href={`/woodslab/product?id=${rec.id}`}>
+                    <div className="rec-img">
+                      {recImg ? <img src={recImg} alt={rec.name} /> : <div className="rec-noimg">No Image</div>}
+                      {renderRecBadge(effectiveStatus)}
+                    </div>
+                    <div className="rec-body">
+                      <div className="rec-name">{rec.name || "ติดต่อสอบถาม"}</div>
+                      <div className="rec-size">{getSizeText(rec.specs)}</div>
+                      <div className="rec-price">
+                        {recDiscount ? (
+                          <>
+                            <span className="price-old" style={{ fontSize: '0.8em' }}>{currency(rec.price)}</span>
+                            <span className="price-new" style={{ fontSize: '1em' }}>{currency(recDiscount.newPrice)}</span>
+                            <span className="badge-discount">-{recDiscount.discount_type === 'PERCENT' ? parseFloat(recDiscount.value) + '%' : recDiscount.value}</span>
+                          </>
+                        ) : currency(rec.price)}
+                      </div>
+                    </div>
+                  </a>
+                )
+              })
+            )}
           </div>
         </section>
       </div>
