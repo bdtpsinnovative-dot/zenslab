@@ -17,9 +17,9 @@ const EXCLUDED_CATEGORIES = ['rough_wood', 'prop']
 
 const getCategoryFilter = (category: CategoryKey): { categoryId?: string; specType?: string; excludeCategories?: string[] } => {
   if (category === 'rough') return { categoryId: 'rough_wood' }
-  if (category === 'leg') return { specType: 'Leg' }
-  if (category === 'chair') return { categoryId: 'chair' }
-  if (category === 'all') return { excludeCategories: EXCLUDED_CATEGORIES }
+  if (category === 'leg') return { categoryId: 'SLABS', specType: 'Leg' }
+  if (category === 'chair') return { categoryId: 'SLABS', specType: 'Chair/Stool' }
+  if (category === 'all') return { categoryId: 'SLABS' }
   return { categoryId: 'SLABS' } // 'slabs'
 }
 // 👇👇👇 เอามาวางตรงนี้เลยจ้ะหลานชาย 👇👇👇
@@ -123,9 +123,9 @@ export async function getProducts(
         .from(TABLE)
         .select('id', { count: 'exact', head: true })
       
-      if (excludeCategories?.length) {
-        countQuery.not('category_id', 'in', `(${excludeCategories.join(',')})`)
-      }
+      if (categoryId) countQuery.eq('category_id', categoryId)
+      if (excludeCategories?.length) countQuery.not('category_id', 'in', `(${excludeCategories.join(',')})`)
+      if (specType) countQuery.eq('specs->>spec_type', specType)
 
       const { count: totalCount, error: countErr } = await countQuery
       if (countErr) throw countErr
@@ -140,9 +140,9 @@ export async function getProducts(
         .select(LIST_SELECT_ACTIVE)
         .range(randomOffset, randomOffset + poolSize - 1)
         
-      if (excludeCategories?.length) {
-        poolQuery = poolQuery.not('category_id', 'in', `(${excludeCategories.join(',')})`)
-      }
+      if (categoryId) poolQuery = poolQuery.eq('category_id', categoryId)
+      if (excludeCategories?.length) poolQuery = poolQuery.not('category_id', 'in', `(${excludeCategories.join(',')})`)
+      if (specType) poolQuery = poolQuery.eq('specs->>spec_type', specType)
 
       const { data: poolData, error: poolErr } = await poolQuery
       if (poolErr) throw poolErr
