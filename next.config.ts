@@ -21,11 +21,9 @@ const nextConfig: NextConfig = {
     ],
   },
   // ✅ บอก Turbopack ให้ treat canvas เป็น empty module (react-pdf ต้องการ)
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        canvas: './empty-canvas.ts',
-      },
+  turbopack: {
+    resolveAlias: {
+      canvas: './empty-canvas.ts',
     },
   },
 };

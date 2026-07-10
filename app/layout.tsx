@@ -9,6 +9,32 @@ const inter = Inter({ subsets: ["latin"], weight: ["300", "400"], variable: '--f
 export const metadata: Metadata = {
   title: "ZENSLABS | Premium Live Edge Furniture", 
   description: "Crafting legacy pieces from nature's finest materials.",
+  metadataBase: new URL('https://www.zen-slab.com'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: "ZENSLABS | Premium Live Edge Furniture",
+    description: "Crafting legacy pieces from nature's finest materials.",
+    url: 'https://www.zen-slab.com',
+    siteName: 'ZENSLABS',
+    images: [
+      {
+        url: '/icon.png',
+        width: 192,
+        height: 192,
+        alt: 'ZENSLABS Logo',
+      },
+    ],
+    locale: 'th_TH',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: "ZENSLABS | Premium Live Edge Furniture",
+    description: "Crafting legacy pieces from nature's finest materials.",
+    images: ['/icon.png'],
+  },
 };
 
 export default function RootLayout({
