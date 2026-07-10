@@ -18,7 +18,7 @@ const EXCLUDED_CATEGORIES = ['rough_wood', 'prop']
 const getCategoryFilter = (category: CategoryKey): { categoryId?: string; specType?: string; excludeCategories?: string[] } => {
   if (category === 'rough') return { categoryId: 'rough_wood' }
   if (category === 'leg') return { specType: 'Leg' }
-  if (category === 'chair') return { specType: 'Chair/Stool' }
+  if (category === 'chair') return { categoryId: 'chair' }
   if (category === 'all') return { excludeCategories: EXCLUDED_CATEGORIES }
   return { categoryId: 'SLABS' } // 'slabs'
 }
@@ -87,14 +87,75 @@ export async function getProducts(
   category: CategoryKey = 'all',
   discountFilter?: number[] | 'all' | null
 ) {
+  console.log("SERVER ACTION - getProducts called with:", { page, limit, filters, category, discountFilter })
   const offset = page * limit
   const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
+  console.log("SERVER ACTION - Resolved category filters:", { categoryId, specType, excludeCategories })
 
   const LIST_SELECT_ACTIVE = "id,name,sku,barcode,price,image_url,status,specs,updated_at,created_at,category_id,stock(qty)"
 
   // ถ้า discount filter ระบุ ID เฉพาะแต่ไม่มีเลย → ไม่มีสินค้าที่มีส่วนลด
   if (Array.isArray(discountFilter) && discountFilter.length === 0) {
     return { data: [], count: 0 }
+  }
+
+  // ค้นหาแบบสุ่มสินค้าบนหน้า All Items (เมื่อไม่ได้ระบุการค้นหาหรือฟิลเตอร์ย่อย)
+  const isDefaultAll = category === 'all' && 
+    !filters.q && 
+    !filters.type && 
+    !filters.material && 
+    !filters.panel && 
+    filters.status === 'all' &&
+    !filters.lengthMin &&
+    !filters.lengthMax &&
+    !filters.widthMin &&
+    !filters.widthMax &&
+    !filters.thickMin &&
+    !filters.thickMax &&
+    !filters.priceMin &&
+    !filters.priceMax &&
+    filters.discount === 'all';
+
+  if (isDefaultAll) {
+    console.log("SERVER ACTION - Randomizing all items landing page")
+    try {
+      const countQuery = supabaseServer
+        .from(TABLE)
+        .select('id', { count: 'exact', head: true })
+      
+      if (excludeCategories?.length) {
+        countQuery.not('category_id', 'in', `(${excludeCategories.join(',')})`)
+      }
+
+      const { count: totalCount, error: countErr } = await countQuery
+      if (countErr) throw countErr
+
+      const total = totalCount || 0
+      const poolSize = Math.min(200, total)
+      const maxOffset = Math.max(0, total - poolSize)
+      const randomOffset = Math.floor(Math.random() * maxOffset)
+
+      let poolQuery = supabaseServer
+        .from(TABLE)
+        .select(LIST_SELECT_ACTIVE)
+        .range(randomOffset, randomOffset + poolSize - 1)
+        
+      if (excludeCategories?.length) {
+        poolQuery = poolQuery.not('category_id', 'in', `(${excludeCategories.join(',')})`)
+      }
+
+      const { data: poolData, error: poolErr } = await poolQuery
+      if (poolErr) throw poolErr
+
+      if (poolData && poolData.length > 0) {
+        const shuffled = [...poolData].sort(() => Math.random() - 0.5)
+        const pageData = shuffled.slice(0, limit)
+        console.log("SERVER ACTION - Random success! Row count:", total, "Returned data length:", pageData.length)
+        return { data: pageData, count: total }
+      }
+    } catch (err) {
+      console.error("SERVER ACTION - Randomization failed, falling back to standard query:", err)
+    }
   }
 
   let query = supabaseServer
@@ -104,9 +165,13 @@ export async function getProducts(
     .order('status', { ascending: true })
     .order('updated_at', { ascending: false })
 
-  if (categoryId) query = query.eq('category_id', categoryId)
+  if (categoryId && specType) {
+    query = query.or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
+  } else {
+    if (categoryId) query = query.eq('category_id', categoryId)
+    if (specType) query = query.eq('specs->>spec_type', specType)
+  }
   if (excludeCategories?.length) query = query.not('category_id', 'in', `(${excludeCategories.join(',')})`)
-  if (specType) query = query.eq('specs->>spec_type', specType)
 
   // --- Discount filter (server-side) ---
   if (Array.isArray(discountFilter) && discountFilter.length > 0) {
@@ -143,7 +208,12 @@ export async function getProducts(
     query = query.or(`name.ilike.%${qq}%,barcode.ilike.%${qq}%,sku.ilike.%${qq}%`)
   }
 
-  const { data, count } = await query
+  const { data, count, error } = await query
+  if (error) {
+    console.error("SERVER ACTION - Supabase query failed:", error)
+  } else {
+    console.log("SERVER ACTION - Supabase query succeeded. Row count:", count, "Data length:", data?.length)
+  }
   return { data: data || [], count: count || 0 }
 }
 
@@ -153,9 +223,17 @@ export async function getMinMax(col: string, category: CategoryKey = 'all') {
 
   let qMin = supabaseServer.from(TABLE).select(col).not(col, 'is', null).order(col, { ascending: true }).limit(1).single()
   let qMax = supabaseServer.from(TABLE).select(col).not(col, 'is', null).order(col, { ascending: false }).limit(1).single()
-  if (categoryId) { qMin = (qMin as any).eq('category_id', categoryId); qMax = (qMax as any).eq('category_id', categoryId) }
-  if (excludeCategoryId) { qMin = (qMin as any).neq('category_id', excludeCategoryId); qMax = (qMax as any).neq('category_id', excludeCategoryId) }
-  if (specType) { qMin = (qMin as any).eq('specs->>spec_type', specType); qMax = (qMax as any).eq('specs->>spec_type', specType) }
+  if (categoryId && specType) {
+    qMin = (qMin as any).or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
+    qMax = (qMax as any).or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
+  } else {
+    if (categoryId) { qMin = (qMin as any).eq('category_id', categoryId); qMax = (qMax as any).eq('category_id', categoryId) }
+    if (specType) { qMin = (qMin as any).eq('specs->>spec_type', specType); qMax = (qMax as any).eq('specs->>spec_type', specType) }
+  }
+  if (excludeCategories?.length) {
+    qMin = (qMin as any).not('category_id', 'in', `(${excludeCategories.join(',')})`)
+    qMax = (qMax as any).not('category_id', 'in', `(${excludeCategories.join(',')})`)
+  }
 
   const [{ data: minData }, { data: maxData }] = await Promise.all([qMin, qMax])
 
@@ -170,9 +248,13 @@ export async function getRangeValues(col: string, category: CategoryKey = 'all')
   const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
 
   let query = supabaseServer.from(TABLE).select(col).not(col, 'is', null).limit(2000)
-  if (categoryId) query = query.eq('category_id', categoryId)
+  if (categoryId && specType) {
+    query = query.or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
+  } else {
+    if (categoryId) query = query.eq('category_id', categoryId)
+    if (specType) query = query.eq('specs->>spec_type', specType)
+  }
   if (excludeCategories?.length) query = query.not('category_id', 'in', `(${excludeCategories.join(',')})`)
-  if (specType) query = query.eq('specs->>spec_type', specType)
 
   const { data } = await query
 
@@ -185,9 +267,13 @@ export async function getDistinctOptions(category: CategoryKey = 'all') {
   const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
 
   let query = supabaseServer.from(TABLE).select('specs').limit(3000)
-  if (categoryId) query = query.eq('category_id', categoryId)
+  if (categoryId && specType) {
+    query = query.or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
+  } else {
+    if (categoryId) query = query.eq('category_id', categoryId)
+    if (specType) query = query.eq('specs->>spec_type', specType)
+  }
   if (excludeCategories?.length) query = query.not('category_id', 'in', `(${excludeCategories.join(',')})`)
-  if (specType) query = query.eq('specs->>spec_type', specType)
 
   const { data } = await query
 
