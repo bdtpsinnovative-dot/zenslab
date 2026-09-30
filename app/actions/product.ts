@@ -19,8 +19,9 @@ const getCategoryFilter = (category: CategoryKey): { categoryId?: string; specTy
   if (category === 'rough') return { categoryId: 'rough_wood' }
   if (category === 'leg') return { categoryId: 'SLABS', specType: 'Leg' }
   if (category === 'chair') return { categoryId: 'SLABS', specType: 'Chair/Stool' }
+  if (category === 'slabs') return { categoryId: 'SLABS', specType: 'Wood slabs' }
   if (category === 'all') return { categoryId: 'SLABS' }
-  return { categoryId: 'SLABS' } // 'slabs'
+  return { categoryId: 'SLABS', specType: 'Wood slabs' }
 }
 // 👇👇👇 เอามาวางตรงนี้เลยจ้ะหลานชาย 👇👇👇
 const getDbCategory = (category: 'slabs' | 'rough'): string => {
@@ -165,12 +166,8 @@ export async function getProducts(
     .order('status', { ascending: true })
     .order('updated_at', { ascending: false })
 
-  if (categoryId && specType) {
-    query = query.or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
-  } else {
-    if (categoryId) query = query.eq('category_id', categoryId)
-    if (specType) query = query.eq('specs->>spec_type', specType)
-  }
+  if (categoryId) query = query.eq('category_id', categoryId)
+  if (specType) query = query.eq('specs->>spec_type', specType)
   if (excludeCategories?.length) query = query.not('category_id', 'in', `(${excludeCategories.join(',')})`)
 
   // --- Discount filter (server-side) ---
@@ -223,13 +220,8 @@ export async function getMinMax(col: string, category: CategoryKey = 'all') {
 
   let qMin = supabaseServer.from(TABLE).select(col).not(col, 'is', null).order(col, { ascending: true }).limit(1).single()
   let qMax = supabaseServer.from(TABLE).select(col).not(col, 'is', null).order(col, { ascending: false }).limit(1).single()
-  if (categoryId && specType) {
-    qMin = (qMin as any).or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
-    qMax = (qMax as any).or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
-  } else {
-    if (categoryId) { qMin = (qMin as any).eq('category_id', categoryId); qMax = (qMax as any).eq('category_id', categoryId) }
-    if (specType) { qMin = (qMin as any).eq('specs->>spec_type', specType); qMax = (qMax as any).eq('specs->>spec_type', specType) }
-  }
+  if (categoryId) { qMin = (qMin as any).eq('category_id', categoryId); qMax = (qMax as any).eq('category_id', categoryId) }
+  if (specType) { qMin = (qMin as any).eq('specs->>spec_type', specType); qMax = (qMax as any).eq('specs->>spec_type', specType) }
   if (excludeCategories?.length) {
     qMin = (qMin as any).not('category_id', 'in', `(${excludeCategories.join(',')})`)
     qMax = (qMax as any).not('category_id', 'in', `(${excludeCategories.join(',')})`)
@@ -248,12 +240,8 @@ export async function getRangeValues(col: string, category: CategoryKey = 'all')
   const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
 
   let query = supabaseServer.from(TABLE).select(col).not(col, 'is', null).limit(2000)
-  if (categoryId && specType) {
-    query = query.or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
-  } else {
-    if (categoryId) query = query.eq('category_id', categoryId)
-    if (specType) query = query.eq('specs->>spec_type', specType)
-  }
+  if (categoryId) query = query.eq('category_id', categoryId)
+  if (specType) query = query.eq('specs->>spec_type', specType)
   if (excludeCategories?.length) query = query.not('category_id', 'in', `(${excludeCategories.join(',')})`)
 
   const { data } = await query
@@ -267,12 +255,8 @@ export async function getDistinctOptions(category: CategoryKey = 'all') {
   const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
 
   let query = supabaseServer.from(TABLE).select('specs').limit(3000)
-  if (categoryId && specType) {
-    query = query.or(`category_id.eq.${categoryId},specs->>spec_type.eq."${specType}"`)
-  } else {
-    if (categoryId) query = query.eq('category_id', categoryId)
-    if (specType) query = query.eq('specs->>spec_type', specType)
-  }
+  if (categoryId) query = query.eq('category_id', categoryId)
+  if (specType) query = query.eq('specs->>spec_type', specType)
   if (excludeCategories?.length) query = query.not('category_id', 'in', `(${excludeCategories.join(',')})`)
 
   const { data } = await query
