@@ -50,7 +50,7 @@ export default function WoodSlabCard({ product, discountInfo }: WoodSlabCardProp
       </div>
       <div className="card-info">
         <div className="card-name">{displayName}</div>
-        <div className="card-meta">{getSizeText(r.specs)}</div>
+        <div className="card-meta">{getSizeText(r.specs, r)}</div>
         {discountInfo ? (
           <div className="card-price" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span className="price-old">{currency(r.price)}</span>

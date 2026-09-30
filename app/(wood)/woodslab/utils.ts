@@ -14,10 +14,23 @@ export const normalizeImg = (u: string) => {
   return `${PROJECT_URL}/storage/v1/object/public/${BUCKET}/${s.replace(/^\/+/, "")}`;
 };
 
-export const getSizeText = (specs: any) => {
-  if (!specs || typeof specs !== "object") return "";
+export const getSizeText = (specsOrRow: any, rowFallback?: any) => {
+  if (!specsOrRow || typeof specsOrRow !== "object") return "";
+  const specs = specsOrRow.specs && typeof specsOrRow.specs === "object" ? specsOrRow.specs : specsOrRow;
+  const row = rowFallback || (specsOrRow.specs ? specsOrRow : null);
   if (specs.size_raw) return specs.size_raw;
-  return specs.size_text || specs.size || specs.dimension || specs.dimensions || specs.Size || "";
+
+  const l = specs.length_cm ?? specs.length_mm ?? specs.length ?? row?.length_cm;
+  const w = specs.width_cm ?? specs.width_mm ?? specs.width ?? row?.width_cm;
+  const t = specs.thickness_cm ?? specs.thickness_mm ?? specs.thickness ?? specs.height_cm ?? specs.height ?? row?.thickness_cm;
+  const parts = [l, w, t].filter(v => v !== null && v !== undefined && v !== "" && Number(v) > 0);
+  const numericDim = specs.dimensions || specs.dimension || (parts.length > 0 ? `${parts.join("-")} MM` : "");
+
+  const direct = specs.size_text || specs.size || specs.Size;
+  if (direct && numericDim && direct !== numericDim && !/\d/.test(String(direct))) {
+    return `${numericDim} (${direct})`;
+  }
+  return direct || numericDim || "";
 };
 
 export const getStockQty = (row: any) => {

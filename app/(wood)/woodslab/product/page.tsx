@@ -33,11 +33,21 @@ const normalizeImg = (u: any) => {
 const currency = (n: any) =>
   n ? new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(n) : "ติดต่อสอบถาม"
 
-const getSizeText = (specs: any) => {
-  if (!specs || typeof specs !== "object") return ""
+const getSizeText = (specsOrRow: any, rowFallback?: any) => {
+  if (!specsOrRow || typeof specsOrRow !== "object") return ""
+  const specs = specsOrRow.specs && typeof specsOrRow.specs === "object" ? specsOrRow.specs : specsOrRow
+  const row = rowFallback || (specsOrRow.specs ? specsOrRow : null)
   // Support legacy size_raw if present
   if (specs.size_raw) return specs.size_raw
-  return specs.size_text || specs.size || specs.dimension || specs.dimensions || specs.Size || ""
+  const direct = specs.size_text || specs.size || specs.dimension || specs.dimensions || specs.Size
+  if (direct) return direct
+
+  const l = specs.length_cm ?? specs.length_mm ?? specs.length ?? row?.length_cm
+  const w = specs.width_cm ?? specs.width_mm ?? specs.width ?? row?.width_cm
+  const t = specs.thickness_cm ?? specs.thickness_mm ?? specs.thickness ?? specs.height ?? row?.thickness_cm
+  const parts = [l, w, t].filter(v => v !== null && v !== undefined && v !== "" && Number(v) > 0)
+  if (parts.length > 0) return `${parts.join("-")} MM`
+  return ""
 }
 
 const escClass = (v: string) => String(v || "").toLowerCase().replace(/[^a-z0-9_-]/g, "")
@@ -237,27 +247,97 @@ function ProductContent() {
     if (!product) return []
     const s = product.specs || {}
     const rows: any[] = []
-    const HIDE = ["images", "gallery", "main_image", "description", "pending", "grade"]
-    const LABELS: any = { size: "Size", size_text: "Size", dimensions: "Dimensions", material: "Material", wood_type: "Material", finish: "Finish", grade: "Grade", origin: "Origin", panel_design: "Panel Design", panel_craft: "Panel Craft", edge_design: "Edge Design", color_craft: "Color Craft", texture_craft: "Texture Craft", brightness: "Brightness", weight: "Weight", spec_type: "Type", type: "Type", width_mm: "Width (mm)", length_mm: "Length (mm)", thickness_mm: "Thickness (mm)", width_cm: "Width (mm)", length_cm: "Length (mm)", thickness_cm: "Thickness (mm)" }
-
     const seenLabels = new Set<string>()
+
+    const addRow = (label: string, val: any, color?: string) => {
+      if (val === null || val === undefined || String(val).trim() === "") return
+      if (seenLabels.has(label)) return
+      seenLabels.add(label)
+      const valDisplay = Array.isArray(val) ? val.join(", ") : String(val)
+      rows.push(color ? { label, value: valDisplay, color } : { label, value: valDisplay })
+    }
+
+    // 1. Status
+    const meta = getStatusMeta(product)
+    addRow("Status", meta.label, meta.key !== "available" ? "#e74c3c" : undefined)
+
+    // 2. Material
+    addRow("Material", s.material ?? s.wood_type)
+
+    // 3. Size
+    const sizeVal = s.group_size || s.size || s.size_raw || s.size_text || getSizeText(s, product)
+    addRow("Size", sizeVal)
+
+    // 4. Length (mm)
+    const lenVal = s.length_cm ?? s.length_mm ?? product.length_cm
+    if (lenVal !== null && lenVal !== undefined && String(lenVal).trim() !== "" && Number(lenVal) > 0) {
+      addRow("Length (mm)", lenVal)
+    }
+
+    // 5. Width (mm)
+    const widVal = s.width_cm ?? s.width_mm ?? product.width_cm
+    if (widVal !== null && widVal !== undefined && String(widVal).trim() !== "" && Number(widVal) > 0) {
+      addRow("Width (mm)", widVal)
+    }
+
+    // 6. Thickness (mm) / Height (mm)
+    const thickVal = s.thickness_cm ?? s.thickness_mm ?? product.thickness_cm
+    const heightVal = s.height_cm ?? s.height_mm
+    if (heightVal != null && Number(heightVal) > 0 && thickVal === heightVal) {
+      addRow("Height (mm)", heightVal)
+    } else {
+      if (thickVal !== null && thickVal !== undefined && String(thickVal).trim() !== "" && Number(thickVal) > 0) {
+        addRow("Thickness (mm)", thickVal)
+      }
+      if (heightVal !== null && heightVal !== undefined && String(heightVal).trim() !== "" && Number(heightVal) > 0) {
+        addRow("Height (mm)", heightVal)
+      }
+    }
+
+    // 7. Weight
+    if (product.weight != null && Number(product.weight) > 0) {
+      addRow("Weight", `${product.weight} kg`)
+    } else if (s.weight != null && String(s.weight).trim() !== "" && String(s.weight).trim() !== "0") {
+      const cleanW = String(s.weight).replace(/\s*kg$/i, "").trim()
+      addRow("Weight", `${cleanW} kg`)
+    }
+
+    // 8. Panel Craft
+    addRow("Panel Craft", s.panel_craft)
+
+    // 9. Panel Design
+    addRow("Panel Design", s.panel_design)
+
+    // 10. Edge Design
+    addRow("Edge Design", s.edge_design)
+
+    // 11. Color Craft
+    addRow("Color Craft", s.color_craft)
+
+    // 12. Finish
+    addRow("Finish", s.finish)
+
+    // แถวอื่นๆ เพิ่มเติม (ถ้ามี เช่น ไม้ดิบ) โดยซ่อนคีย์ระบบและคีย์ที่จัดเรียงไปแล้ว
+    const HIDE = [
+      "images", "gallery", "main_image", "description", "pending", "grade",
+      "images_count", "dimensions", "dimension", "type", "spec_type",
+      "size", "size_raw", "size_text", "group_size",
+      "material", "wood_type", "length_cm", "length_mm", "width_cm", "width_mm",
+      "thickness_cm", "thickness_mm", "height_cm", "height_mm", "weight",
+      "panel_craft", "panel_design", "edge_design", "color_craft", "finish"
+    ]
+    const LABELS: any = {
+      origin: "Origin",
+      texture_craft: "Texture Craft",
+      brightness: "Brightness",
+    }
+
     Object.entries(s).forEach(([k, v]) => {
       if (HIDE.includes(k) || v === null || v === "") return
       const label = LABELS[k] || k.replace(/_/g, " ").replace(/\b\w/g, m => m.toUpperCase())
-      if (seenLabels.has(label)) return
-      seenLabels.add(label)
-      const valDisplay = Array.isArray(v) ? v.join(", ") : String(v)
-      rows.push({ label, value: valDisplay })
+      addRow(label, v)
     })
 
-    if (product.weight != null && product.weight !== 0) {
-      rows.push({ label: "Weight", value: `${product.weight} kg` })
-    }
-
-    const meta = getStatusMeta(product)
-    if (meta.key !== "available") {
-      rows.push({ label: "Status", value: meta.label, color: "#e74c3c" })
-    }
     return rows
   }
 

@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 const TABLE = "products"
 
 // ⚠️ อันเดิมเก็บไว้ (เผื่อใช้ในฟังก์ชันอื่นที่อยากเห็นของหมด)
-const LIST_SELECT = "id,name,sku,barcode,price,image_url,status,specs,updated_at,created_at,stock(qty)"
+const LIST_SELECT = "id,name,sku,barcode,price,image_url,status,length_cm,width_cm,thickness_cm,specs,updated_at,created_at,stock(qty)"
 
 // --- Helper Functions ---
 export type CategoryKey = 'all' | 'slabs' | 'rough' | 'leg' | 'chair'
@@ -93,7 +93,7 @@ export async function getProducts(
   const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
   console.log("SERVER ACTION - Resolved category filters:", { categoryId, specType, excludeCategories })
 
-  const LIST_SELECT_ACTIVE = "id,name,sku,barcode,price,image_url,status,specs,updated_at,created_at,category_id,stock(qty)"
+  const LIST_SELECT_ACTIVE = "id,name,sku,barcode,price,image_url,status,length_cm,width_cm,thickness_cm,specs,updated_at,created_at,category_id,stock(qty)"
 
   // ถ้า discount filter ระบุ ID เฉพาะแต่ไม่มีเลย → ไม่มีสินค้าที่มีส่วนลด
   if (Array.isArray(discountFilter) && discountFilter.length === 0) {
