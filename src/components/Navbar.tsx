@@ -11,7 +11,7 @@ import { signOutAction } from '@/app/actions/auth'
 const getImageUrl = (path: string | null, version?: string) => {
   if (!path) return null;
   if (path.startsWith('http') || path.startsWith('https')) return path;
-  const baseUrl = "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public";
+  const baseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gshppxgvdrmbfcxsxeph.supabase.co"}/storage/v1/object/public`;
   const cleanPath = path.replace(/^\/+/, "");
   const fullUrl = `${baseUrl}/${cleanPath}`;
   if (version) {

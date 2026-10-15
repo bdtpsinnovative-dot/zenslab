@@ -19,7 +19,7 @@ import '../woodslab.css'
 
 // --- CONFIG ---
 const BUCKET = "product-images"
-const PROJECT_URL = "https://zexflchjcycxrpjkuews.supabase.co"
+const PROJECT_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gshppxgvdrmbfcxsxeph.supabase.co"
 
 // --- UTILS ---
 const normalizeImg = (u: any) => {

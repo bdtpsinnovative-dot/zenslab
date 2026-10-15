@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 // --- UTILS (ตามแบบหน้า Favorites) ---
 const BUCKET = "product-images"
-const PROJECT_URL = "https://zexflchjcycxrpjkuews.supabase.co"
+const PROJECT_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gshppxgvdrmbfcxsxeph.supabase.co"
 
 const normalizeImg = (u: any) => {
   const s = String(u || "").trim()

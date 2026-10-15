@@ -11,7 +11,7 @@ import { getCroppedImg } from '@/src/utils/canvasUtils' // ✅ Import Helper ท
 const getImageUrl = (path: string | null) => {
   if (!path) return null;
   if (path.startsWith('http') || path.startsWith('https') || path.startsWith('blob:')) return path;
-  const baseUrl = "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public";
+  const baseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gshppxgvdrmbfcxsxeph.supabase.co"}/storage/v1/object/public`;
   const cleanPath = path.replace(/^\/+/, "");
   return `${baseUrl}/${cleanPath}`;
 }

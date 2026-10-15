@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 
 // --- CONSTANTS & UTILS ---
 const BUCKET = "product-images"
-const PROJECT_URL = "https://zexflchjcycxrpjkuews.supabase.co"
+const PROJECT_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gshppxgvdrmbfcxsxeph.supabase.co"
 
 const normalizeImg = (u: any) => {
   const s = String(u || "").trim()

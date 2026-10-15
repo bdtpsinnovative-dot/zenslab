@@ -38,7 +38,7 @@ const ADVANTAGES = [
     title: "คัดสรรวัตถุดิบ",
     titleEn: "Premium Material Selection",
     desc: "ทีมจัดหาวัตถุดิบระดับโลกของเราสำรวจป่าที่ยั่งยืนทั่วโลกอย่างสม่ำเสมอ มุ่งค้นหาซุงอายุร้อยปีที่มีลายเนื้อไม้เฉพาะตัว เราเลือกเฉพาะไม้ที่มีรูปทรงธรรมชาติอันหาได้ยาก เพื่อสร้างไม้แผ่นระดับโลกอย่างแท้จริง",
-    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/f473ea3dcaf601f3c6ee4b6b75e505b0-l896u.webp",
+    img: "https://gshppxgvdrmbfcxsxeph.supabase.co/storage/v1/object/public/site-assets/general/f473ea3dcaf601f3c6ee4b6b75e505b0-l896u.webp",
     reverse: false,
   },
   {
@@ -46,7 +46,7 @@ const ADVANTAGES = [
     title: "ปรัชญาการออกแบบ",
     titleEn: "Design Philosophy",
     desc: "ทีมนักออกแบบของเราเข้าใจลึกซึ้งถึงคุณลักษณะและความงามของไม้แต่ละชนิด พร้อมผสมผสานแนวคิดเฟอร์นิเจอร์ร่วมสมัยเข้ากับธรรมชาติของไม้ สร้างสไตล์ขอบ 14 แบบและแบบผิว 17 แบบ เพื่อให้ลูกค้าเลือกและปรับแต่งได้อย่างอิสระ",
-    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/68472cc7da4659be15da224c8a898827-7v52j.webp",
+    img: "https://gshppxgvdrmbfcxsxeph.supabase.co/storage/v1/object/public/site-assets/general/68472cc7da4659be15da224c8a898827-7v52j.webp",
     reverse: true,
   },
   {
@@ -54,7 +54,7 @@ const ADVANTAGES = [
     title: "ช่างฝีมือระดับมาสเตอร์",
     titleEn: "Master Craftsmanship",
     desc: "ทีมช่างเทคนิคมืออาชีพของเราเชี่ยวชาญงานไม้แผ่นเนื้อแข็งโดยเฉพาะ กระบวนการทุกขั้นตอนถูกออกแบบให้ไม่กระทบต่อความเสถียรโดยธรรมชาติของไม้ พร้อมมอบตัวเลือกสี 18 เฉดและเนื้อผิว 9 แบบ",
-    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/5d3bdeb73b39b3dd05fd75c9e80711e9-qqox1.webp",
+    img: "https://gshppxgvdrmbfcxsxeph.supabase.co/storage/v1/object/public/site-assets/general/5d3bdeb73b39b3dd05fd75c9e80711e9-qqox1.webp",
     reverse: false,
   },
   {
@@ -62,7 +62,7 @@ const ADVANTAGES = [
     title: "เทคโนโลยีระดับนำ",
     titleEn: "Advanced Technology",
     desc: "ด้วยการสนับสนุนจากเทคโนโลยีชั้นนำระดับโลก เราใช้เครื่องอบแห้งความถี่สูงนำเข้าจากญี่ปุ่น และเครื่องปรับระดับไม้ขนาดใหญ่ ทีมช่างไม้ผู้มีประสบการณ์กว่า 15 ปีดูแลทุกขั้นตอนการผลิต",
-    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/a8bceb7a237a54537e38cc24da55a6c4-ie2cd.webp",
+    img: "https://gshppxgvdrmbfcxsxeph.supabase.co/storage/v1/object/public/site-assets/general/a8bceb7a237a54537e38cc24da55a6c4-ie2cd.webp",
     reverse: true,
   },
   {
@@ -70,7 +70,7 @@ const ADVANTAGES = [
     title: "รับผิดชอบต่อสิ่งแวดล้อม",
     titleEn: "Eco-Responsibility",
     desc: "เราควบคุมทุกรายละเอียดด้านความยั่งยืนอย่างพิถีพิถัน ตั้งแต่การคัดเลือกวัตถุดิบ วัสดุเรซิน กาว จนถึงสีเคลือบผิว ทุกอย่างผ่านการตรวจสอบให้ปลอดภัย เป็นมิตรกับสิ่งแวดล้อม และทนทานสูง",
-    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/e9baa1b8ae605818af42473d388bf0eb-xwcek.webp",
+    img: "https://gshppxgvdrmbfcxsxeph.supabase.co/storage/v1/object/public/site-assets/general/e9baa1b8ae605818af42473d388bf0eb-xwcek.webp",
     reverse: false,
   },
   {
@@ -78,7 +78,7 @@ const ADVANTAGES = [
     title: "คอลเลกชันพิเศษเฉพาะ",
     titleEn: "Exclusive Collection",
     desc: "คลังสินค้ามากกว่า 10,000 แผ่นที่อบแห้งตามธรรมชาติ และอีกกว่า 1,500 แผ่นระดับพรีเมียม ครอบคลุมพันธุ์ไม้หายากกว่า 40 ชนิดจากยุโรป อเมริกาเหนือ อเมริกาใต้ แอฟริกา และเอเชียตะวันออกเฉียงใต้",
-    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/8ddac0c25fa633cb6bbdfcb4a031254c-0arvm.webp",
+    img: "https://gshppxgvdrmbfcxsxeph.supabase.co/storage/v1/object/public/site-assets/general/8ddac0c25fa633cb6bbdfcb4a031254c-0arvm.webp",
     reverse: true,
   },
 ];
@@ -214,7 +214,7 @@ export default function FranchiseePage() {
       <section className="py-0 bg-[#1C1917] overflow-hidden">
         {/* top image strip */}
         <div className="w-full h-64 md:h-72 relative overflow-hidden">
-          <img src="https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/joinshop7-l6un4.webp"
+          <img src="https://gshppxgvdrmbfcxsxeph.supabase.co/storage/v1/object/public/site-assets/general/joinshop7-l6un4.webp"
             alt="" className="w-full h-full object-cover opacity-25"
             style={{ 
               backfaceVisibility: 'hidden', 
@@ -258,7 +258,7 @@ export default function FranchiseePage() {
 
       {/* ══ INVESTMENT PARALLAX ══ */}
       <section className="relative py-52 px-6 bg-fixed bg-cover bg-center overflow-hidden"
-        style={{ backgroundImage: `url("https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/joinshop7-l6un4.webp")` }}>
+        style={{ backgroundImage: `url("https://gshppxgvdrmbfcxsxeph.supabase.co/storage/v1/object/public/site-assets/general/joinshop7-l6un4.webp")` }}>
         <div className="absolute inset-0 bg-black/65" />
         <div className="relative z-10 max-w-3xl mx-auto text-center text-white">
           <FadeIn>

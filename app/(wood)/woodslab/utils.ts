@@ -9,7 +9,7 @@ export const normalizeImg = (u: string) => {
   const s = String(u || "").trim();
   if (!s) return "";
   if (/^https?:\/\//i.test(s)) return s;
-  const PROJECT_URL = "https://zexflchjcycxrpjkuews.supabase.co";
+  const PROJECT_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gshppxgvdrmbfcxsxeph.supabase.co";
   const BUCKET = "product-images";
   return `${PROJECT_URL}/storage/v1/object/public/${BUCKET}/${s.replace(/^\/+/, "")}`;
 };

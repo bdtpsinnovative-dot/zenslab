@@ -6,11 +6,10 @@ import { cookies } from 'next/headers'
 export async function getCurrentUser() {
   const cookieStore = await cookies()
 
-  // 👇 1. เปลี่ยนชื่อ Cookie ให้ตรงกับในภาพของคุณ (ก๊อปชื่อยาวๆ มาใส่)
-  // ชื่อนี้มาจากในรูปที่คุณส่งมาครับ
-  const SUPABASE_COOKIE_NAME = 'sb-zexflchjcycxrpjkuews-auth-token'
-  
-  const tokenCookie = cookieStore.get(SUPABASE_COOKIE_NAME)
+  // Support Singapore Supabase cookie name, Sydney, or dynamic matching
+  const tokenCookie = cookieStore.get('sb-gshppxgvdrmbfcxsxeph-auth-token') 
+    || cookieStore.get('sb-zexflchjcycxrpjkuews-auth-token')
+    || cookieStore.getAll().find(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
   const manualToken = cookieStore.get('sb-access-token') // เผื่อไว้
 
   let token = manualToken?.value
