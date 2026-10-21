@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/src/components/Navbar";
+import GlobalMessengerInquiryButton from "@/src/components/GlobalMessengerInquiryButton";
 import { Playfair_Display, Inter } from "next/font/google";
 import Script from "next/script";
 
@@ -89,6 +90,7 @@ export default function RootLayout({
 
         <Navbar />
         {children}
+        <GlobalMessengerInquiryButton />
       </body>
     </html>
   );
