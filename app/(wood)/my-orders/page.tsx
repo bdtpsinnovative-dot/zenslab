@@ -9,6 +9,9 @@ const PROJECT_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gshppxgvdrm
 const normalizeImg = (u: any) => {
   const s = String(u || "").trim()
   if (!s) return ""
+  if (s.includes("ixiumu.cn")) {
+    return `/api/proxy-image?url=${encodeURIComponent(s)}`
+  }
   if (/^https?:\/\//i.test(s)) return s
   const cleanPath = s.replace(/^\/+/, "")
   return `${PROJECT_URL}/storage/v1/object/public/${BUCKET}/${cleanPath}`

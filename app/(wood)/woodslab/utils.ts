@@ -8,6 +8,9 @@ export const currency = (n: any) =>
 export const normalizeImg = (u: string) => {
   const s = String(u || "").trim();
   if (!s) return "";
+  if (s.includes("ixiumu.cn")) {
+    return `/api/proxy-image?url=${encodeURIComponent(s)}`;
+  }
   if (/^https?:\/\//i.test(s)) return s;
   const PROJECT_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gshppxgvdrmbfcxsxeph.supabase.co";
   const BUCKET = "product-images";
