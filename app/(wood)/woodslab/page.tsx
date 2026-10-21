@@ -7,9 +7,10 @@ import { getProducts, getActiveDiscounts, getMinMax, getRangeValues, getDistinct
 import './woodslab.css'
 
 import { LIMIT, RANGE_COLS } from './config'
-import { calculateProductDiscount, buildPresetsFromValues } from './utils'
+import { calculateProductDiscount, buildPresetsFromValues, normalizeImg, getEffectiveStatus, getSizeText } from './utils'
 import WoodSlabCard from './components/WoodSlabCard'
 import FilterBar from './components/FilterBar'
+import PageScreenshotShare, { type CatalogItem } from '@/src/components/PageScreenshotShare'
 
 function WoodSlabContent() {
   const router = useRouter()
@@ -58,6 +59,32 @@ function WoodSlabContent() {
   const getProductDiscount = useCallback((product: any) => {
     return calculateProductDiscount(product, activeDiscounts)
   }, [activeDiscounts])
+
+  // 📸 Catalog items for PageScreenshotShare
+  const catalogItems: CatalogItem[] = React.useMemo(() => {
+    return products.map((r) => {
+      const discountInfo: any = getProductDiscount(r)
+      const imgPath = r.image_url || r.specs?.main_image?.path || r.specs?.main_image?.url
+      const img = normalizeImg(imgPath)
+      const st = getEffectiveStatus(r)
+      const sizeText = getSizeText(r.specs, r)
+      const isOut = st === 'sold' || st === 'pending'
+
+      return {
+        id: r.id,
+        name: (r.name && r.name !== '-') ? r.name : 'แผ่นไม้ธรรมชาติ',
+        sku: r.sku || '',
+        size: sizeText || '',
+        imageUrl: img || '',
+        price: r.price ? Number(r.price) : null,
+        discountedPrice: discountInfo ? Number(discountInfo.newPrice) : null,
+        discountValue: discountInfo ? parseFloat(discountInfo.value) : null,
+        discountType: discountInfo ? discountInfo.discount_type : null,
+        outOfStock: isOut,
+        statusText: st === 'sold' ? 'SOLD OUT' : st === 'pending' ? 'BOOKED' : undefined,
+      }
+    })
+  }, [products, getProductDiscount])
 
   // 🔥 setPage รับ 0-based แล้วเขียน 1-based ลง URL
   // หน้าแรก (0) → ลบ ?page ออก / หน้าอื่น → ?page=2, ?page=21
@@ -238,6 +265,15 @@ function WoodSlabContent() {
             setPage={setPage}
           />
         </div>
+
+        {/* 🌟 ปุ่มลอยแชร์ภาพหน้าเว็บ ZENSLABS */}
+        <PageScreenshotShare
+          categoryName={currentCategory === 'all' ? 'WOOD SLABS COLLECTION' : `${currentCategory.toUpperCase()} COLLECTION`}
+          items={catalogItems}
+          currentPage={page + 1}
+          totalPages={totalPages}
+          showFloatingButton={true}
+        />
 
         <div className="grid">
           {loading ? (
