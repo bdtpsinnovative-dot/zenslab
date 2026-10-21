@@ -293,64 +293,147 @@ export async function getProductDetail(id?: string) {
 
 // ✅ อัลกอริทึมแนะนำสินค้า (Demo Version): แสดงสินค้าทั้งหมดไม่สน Status เอาให้เต็ม 8 ช่อง
 export async function getRecommendProducts(currentId: number | string, specs: any, categoryId?: string) {
+  const currentNumId = Number(currentId)
   const material = specs?.material || ""
+  const curLength = Number(specs?.length_cm) || 0
+  const curWidth = Number(specs?.width_cm) || 0
+  const curThick = Number(specs?.thickness_cm) || 0
   
   const selectCols = "id,name,sku,price,image_url,status,specs,updated_at,favorite_count,stock(qty)"
+  const finalResults: any[] = []
+  const seenIds = new Set<number | string>([currentId, currentNumId])
 
-  // 🎯 Step 1: หาแผ่นที่ "ชนิดไม้เดียวกัน (Material)"
-  // เรียงตามความนิยม (favorite_count) ให้หน้าเดโมดูเนียนตา
-  let q1 = supabaseServer
-    .from(TABLE)
-    .select(selectCols)
-    .neq("id", currentId)
-    
-  if (categoryId) {
-      q1 = q1.eq("category_id", categoryId)
+  try {
+    // 🧠 Algorithm Step 1: User Journey / Sequential Views (ดึงสินค้าที่คนดูต่อกันจาก algorithm_events แบบเดียวกับ Terra)
+    if (Number.isSafeInteger(currentNumId)) {
+      const { data: recentSessions } = await supabaseServer
+        .from('algorithm_events')
+        .select('session_id')
+        .eq('source_tag', 'slab')
+        .eq('product_id', currentNumId)
+        .not('session_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(30)
+
+      const sessionIds = Array.from(new Set((recentSessions || []).map(r => r.session_id).filter(Boolean)))
+
+      if (sessionIds.length > 0) {
+        const { data: coViewedEvents } = await supabaseServer
+          .from('algorithm_events')
+          .select('product_id')
+          .eq('source_tag', 'slab')
+          .in('session_id', sessionIds)
+          .neq('product_id', currentNumId)
+          .not('product_id', 'is', null)
+          .limit(40)
+
+        if (coViewedEvents && coViewedEvents.length > 0) {
+          // นับคะแนนความถี่ที่ถูกเปิดดูคู่กัน
+          const freqMap = new Map<number, number>()
+          coViewedEvents.forEach(e => {
+            const pid = Number(e.product_id)
+            if (pid && !seenIds.has(pid)) {
+              freqMap.set(pid, (freqMap.get(pid) || 0) + 1)
+            }
+          })
+
+          const sortedPids = Array.from(freqMap.entries())
+            .sort((a, b) => b[1] - a[1])
+            .map(x => x[0])
+            .slice(0, 8)
+
+          if (sortedPids.length > 0) {
+            const { data: coViewedProducts } = await supabaseServer
+              .from(TABLE)
+              .select(selectCols)
+              .in('id', sortedPids)
+
+            if (coViewedProducts) {
+              for (const pid of sortedPids) {
+                const prod = coViewedProducts.find(p => p.id === pid)
+                if (prod && !seenIds.has(prod.id)) {
+                  finalResults.push(prod)
+                  seenIds.add(prod.id)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (algoErr) {
+    console.warn("Algorithm co-view query fallback:", algoErr)
   }
 
-  if (material) {
-      q1 = q1.eq("specs->>material", material)
-  }
-
-  q1 = q1.order("favorite_count", { ascending: false }) 
-         .order("updated_at", { ascending: false })     
-         .limit(8)
-
-  const { data: matchedMaterial } = await q1
-  let results = matchedMaterial || []
-
-  // 🎯 Step 2: ถ้าไม้ชนิดเดียวกันมีไม่ถึง 8 แผ่น (ในเดโมของอาจจะยังน้อย)
-  // ให้ดึง "สินค้ายอดฮิตที่สุดในเดโม" มาเติมให้เต็ม 8 กรอบ
-  if (results.length < 8) {
-    const existingIds = new Set(results.map(r => r.id))
-    existingIds.add(currentId)
-
-    let q2 = supabaseServer
+  // 🎯 Algorithm Step 2: Dimension & Spec Similarity (จับคู่แผ่นไม้ชนิดเดียวกัน + ขนาดใกล้เคียงกัน)
+  if (finalResults.length < 8) {
+    let qMat = supabaseServer
       .from(TABLE)
       .select(selectCols)
-      .order("favorite_count", { ascending: false })
-      .order("updated_at", { ascending: false })
-      .limit(15) 
+      .neq("id", currentId)
 
-    if (categoryId) {
-        q2 = q2.eq("category_id", categoryId)
-    }
+    if (categoryId) qMat = qMat.eq("category_id", categoryId)
+    if (material) qMat = qMat.eq("specs->>material", material)
 
-    const { data: popularData } = await q2
+    qMat = qMat.order("status", { ascending: true })
+               .order("updated_at", { ascending: false })
+               .limit(20)
 
-    if (popularData) {
-      for (const item of popularData) {
-        if (!existingIds.has(item.id)) {
-          results.push(item)
-          existingIds.add(item.id)
+    const { data: matData } = await qMat
+
+    if (matData && matData.length > 0) {
+      // คำนวณความใกล้เคียงของมิติขนาด (Dimension Proximity)
+      const scored = matData
+        .filter(p => !seenIds.has(p.id))
+        .map(p => {
+          const l = Number(p.specs?.length_cm) || 0
+          const w = Number(p.specs?.width_cm) || 0
+          const t = Number(p.specs?.thickness_cm) || 0
+          // Normalised Euclidean distance for slab dimensions
+          const dL = curLength > 0 ? Math.abs(l - curLength) / curLength : 0
+          const dW = curWidth > 0 ? Math.abs(w - curWidth) / curWidth : 0
+          const dT = curThick > 0 ? Math.abs(t - curThick) / curThick : 0
+          const distance = dL + dW + dT
+          return { product: p, distance }
+        })
+        .sort((a, b) => a.distance - b.distance)
+
+      for (const item of scored) {
+        if (!seenIds.has(item.product.id)) {
+          finalResults.push(item.product)
+          seenIds.add(item.product.id)
+          if (finalResults.length >= 8) break
         }
-        // เติมจนครบ 8 แผ่นแล้วหยุด หน้าเว็บจะได้เรียงกรอบสวยๆ พอดี
-        if (results.length >= 8) break; 
       }
     }
   }
 
-  return results
+  // 🎯 Algorithm Step 3: Trending & Popularity Fallback (ดึงสินค้ายอดฮิตมาเติมจนครบ 8 แผ่น)
+  if (finalResults.length < 8) {
+    let qPop = supabaseServer
+      .from(TABLE)
+      .select(selectCols)
+      .neq("id", currentId)
+      .order("favorite_count", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(15)
+
+    if (categoryId) qPop = qPop.eq("category_id", categoryId)
+
+    const { data: popData } = await qPop
+
+    if (popData) {
+      for (const item of popData) {
+        if (!seenIds.has(item.id)) {
+          finalResults.push(item)
+          seenIds.add(item.id)
+          if (finalResults.length >= 8) break
+        }
+      }
+    }
+  }
+
+  return finalResults
 }
 export async function purchaseProduct(id: number) {
   const { error } = await supabaseServer.from(TABLE).update({ status: 'on_request', updated_at: new Date().toISOString() }).eq('id', id)

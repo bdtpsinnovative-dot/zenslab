@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/src/components/Navbar";
 import GlobalMessengerInquiryButton from "@/src/components/GlobalMessengerInquiryButton";
+import AnalyticsTracker from "@/src/components/AnalyticsTracker";
+import { Suspense } from "react";
 import { Playfair_Display, Inter } from "next/font/google";
 import Script from "next/script";
 
@@ -88,6 +90,9 @@ export default function RootLayout({
           }
         `}} />
 
+        <Suspense fallback={null}>
+          <AnalyticsTracker />
+        </Suspense>
         <Navbar />
         {children}
         <GlobalMessengerInquiryButton />

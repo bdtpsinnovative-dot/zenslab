@@ -139,6 +139,24 @@ function ProductContent() {
         if (!prod) { setErrorMsg("Product not found"); return }
         setProduct(prod)
 
+        // 📈 Algorithm Event: Record Slab Product View
+        try {
+          fetch('/api/algorithm/events', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              event_type: 'product_view',
+              product_id: prod.id,
+              page_type: 'product',
+              page_path: `/woodslab/product?id=${prod.id}`,
+              product_name_snapshot: prod.name,
+              product_sku_snapshot: prod.sku,
+              product_material_snapshot: prod.specs?.material || null,
+              product_price_snapshot: prod.price ? Number(prod.price) : null,
+            }),
+          }).catch(() => {})
+        } catch (_) {}
+
         setLikeCount(likeData.count)
         setIsLiked(likeData.isLiked)
         setIsLoggedIn((likeData as any).isLoggedIn || false)
