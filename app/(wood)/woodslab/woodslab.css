@@ -203,13 +203,6 @@ h1 span { color: var(--accent); }
   z-index: 2; letter-spacing: 0.5px; backdrop-filter: blur(6px);
 }
 .badge-available { background: rgba(0,128,0,.65); }
-.badge-on_stock, .badge-onstock {
-  background: rgba(39, 174, 96, 0.95);
-  color: #fff;
-  font-weight: 600;
-  box-shadow: 0 2px 6px rgba(39, 174, 96, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
 .badge-pending { background: rgba(128,128,128,.65); }
 .badge-sold { background: rgba(180,0,0,.65); }
 .badge-archived { background: rgba(60,60,60,.65); }

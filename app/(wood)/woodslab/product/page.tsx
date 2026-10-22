@@ -295,15 +295,15 @@ function ProductContent() {
     if (meta.key === 'sold') {
       addRow("Status", "Sold Out (สินค้าขายแล้ว)", "#e74c3c")
     } else if (meta.key === 'on_stock' || currentStock > 0) {
-      addRow("Status", "พร้อมส่ง (In Stock)", "#27ae60")
-      addRow("Stock Quantity", `${currentStock} แผ่น/ชิ้น`, "#27ae60")
+      addRow("Status", "พร้อมส่ง (In Stock)")
+      addRow("Stock Quantity", `${currentStock} แผ่น/ชิ้น`)
       if (currentBranches.length > 0) {
         addRow("Location / คลัง", currentBranches.map((b: any) => `${b.branchName} (${b.qty} ชิ้น)`).join(", "))
       }
     } else if (meta.key === 'pre_order') {
-      addRow("Status", "สินค้าสั่งผลิต (Pre-order)", "#e67e22")
+      addRow("Status", "สินค้าสั่งผลิต (Pre-order)")
     } else {
-      addRow("Status", meta.label, meta.key !== "available" ? "#e74c3c" : undefined)
+      addRow("Status", meta.label)
     }
 
     // 2. Material
@@ -495,13 +495,12 @@ function ProductContent() {
   // ใช้ Logic เดียวกับหน้าหลักสำหรับการ์ดสินค้าแนะนำ
   const renderRecBadge = (status: string) => {
     const s = String(status || "").toLowerCase().trim()
-    if (!s || s === "available" || s === "pre_order") return null
+    if (!s || s === "available" || s === "on_stock" || s === "pre_order") return null
 
     const STATUS_BADGE: Record<string, any> = {
-      on_stock: { text: "พร้อมส่ง (In Stock)", style: "pill" },
       on_request: { text: "มีคนกำลังสนใจ", style: "pill" },
       pending: { text: "BOOKED", jp: "Reserved", style: "circle" },
-      sold: { text: "SOLD OUT", jp: "Sold", style: "circle" }, // ✅ ให้เหมือนหน้าหลัก
+      sold: { text: "SOLD OUT", jp: "Sold", style: "circle" },
       reserved: { text: "RESERVED", style: "pill" },
       archived: { text: "ARCHIVE", style: "pill" },
       draft: { text: "DRAFT", style: "pill" },
@@ -510,7 +509,6 @@ function ProductContent() {
     const cls = escClass(s)
 
     if (s === 'on_request') return <div className={`rec-badge on_request`}>{meta.text}</div>
-    if (s === 'on_stock') return <div className="rec-badge" style={{ background: '#27ae60' }}>พร้อมส่ง</div>
     if (meta.style === 'circle') {
       return (
         <div className="status-overlay">
@@ -890,44 +888,6 @@ function ProductContent() {
               </div>
             </div>
 
-            {/* Stock Availability Box */}
-            <div style={{
-              margin: '0 0 20px 0',
-              padding: '12px 16px',
-              borderRadius: '6px',
-              border: isSoldOut ? '1px solid #fed7d7' : isOnStock ? '1px solid #c6f6d5' : '1px solid #feebc8',
-              backgroundColor: isSoldOut ? '#fff5f5' : isOnStock ? '#f0fff4' : '#fffaf0',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '0.92rem' }}>
-                {isSoldOut ? (
-                  <>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#e53e3e', display: 'inline-block' }} />
-                    <span style={{ color: '#c53030' }}>สินค้าหมดชั่วคราว / ขายแล้ว (Sold Out)</span>
-                  </>
-                ) : isOnStock ? (
-                  <>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38a169', display: 'inline-block' }} />
-                    <span style={{ color: '#276749' }}>
-                      พร้อมส่งในสต็อก: <strong>{totalStock}</strong> ชิ้น
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dd6b20', display: 'inline-block' }} />
-                    <span style={{ color: '#c05621' }}>สินค้าสั่งผลิต (Pre-order / Made to Order)</span>
-                  </>
-                )}
-              </div>
-              {isOnStock && stockBranches.length > 0 && (
-                <div style={{ fontSize: '0.82rem', color: '#4a5568', paddingLeft: '16px' }}>
-                  สถานที่เก็บ: {stockBranches.map((b: any) => `${b.branchName} (${b.qty} ชิ้น)`).join(', ')}
-                </div>
-              )}
-            </div>
-
             {!isSoldOut && (
               <div className="qty-row">
                 <div className="qty-control">
@@ -952,10 +912,10 @@ function ProductContent() {
                   </button>
                 </div>
 
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
                   Unit(s) {isOnStock && totalStock > 0 && (
-                    <span style={{ fontSize: '0.85em', color: '#27ae60', fontWeight: 500 }}>
-                      {' '}(คงเหลือ {totalStock} ชิ้น)
+                    <span style={{ fontSize: '0.85em', color: '#666' }}>
+                      {' '}(มีในสต็อก: {totalStock} ชิ้น)
                     </span>
                   )}
                 </span>
