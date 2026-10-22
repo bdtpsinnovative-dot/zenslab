@@ -55,15 +55,17 @@ const getSizeText = (specsOrRow: any, rowFallback?: any) => {
 
 const escClass = (v: string) => String(v || "").toLowerCase().replace(/[^a-z0-9_-]/g, "")
 
-// ✅ Helper ใหม่: เช็คจำนวนสต็อก (เหมือนหน้า Main)
+// ✅ Helper: เช็คจำนวนสต็อกจริง
 const getStockQty = (row: any) => {
-  if (!row?.stock || !Array.isArray(row.stock) || row.stock.length === 0) return 99;
+  if (!row?.stock || !Array.isArray(row.stock)) return 0;
   return row.stock.reduce((sum: number, item: any) => sum + (parseFloat(item.qty) || 0), 0);
 }
 
 // --- CONSTANTS ---
 const STATUS_META: any = {
+  on_stock: { label: "พร้อมส่ง (In Stock)", canBuy: true, overlay: false },
   available: { label: "Available", canBuy: true, overlay: false },
+  pre_order: { label: "Pre-order (สั่งผลิต)", canBuy: true, overlay: false },
   on_request: { label: "มีคนกำลังสนใจ", canBuy: true, overlay: true, en: "INTERESTED", jp: "Interested" },
   pending: { label: "Booked", canBuy: false, overlay: true, jp: "Reserved", en: "BOOKED" },
   reserved: { label: "Booked", canBuy: false, overlay: true, jp: "Reserved", en: "BOOKED" },
@@ -208,17 +210,14 @@ function ProductContent() {
   }, [showQR, idParam])
 
   // --- Helpers ---
-  // ✅ LOGIC ใหม่: เช็ค stock ก่อน status (Consistency with Main Page)
+  // ✅ LOGIC: เช็คสถานะและสต็อกจริง
   const getEffectiveStatus = useCallback((row: any) => {
-    // 1. เช็คสต็อกก่อน (สำคัญที่สุด)
-    // const qty = getStockQty(row);
-    //if (qty <= 0) return "sold"; // หมด
-
-    // 2. ถ้ามี Legacy pending flag
+    // 1. ถ้ามี Legacy pending flag
     if (row?.specs?.pending === true || row?.specs?.pending === "true") return "pending"
 
-    // 3. เช็ค Status
+    // 2. เช็ค Status
     const st = String(row?.status || "").toLowerCase().trim()
+    if (st === "sold" || st === "sold out" || st === "sold_out") return "sold"
     if (st === "draft") return "draft"
     if (st === "on_request") return "on_request"
 
@@ -227,6 +226,11 @@ function ProductContent() {
 
     if (st === "inactive") return "archived"
     if (st === "active") return "available"
+    if (st === "on stock" || st === "on_stock" || st === "in stock" || st === "in_stock") return "on_stock"
+    if (st === "pre-order" || st === "pre-oder" || st === "preorder") return "pre_order"
+
+    const qty = getStockQty(row)
+    if (qty > 0) return "on_stock"
 
     return st || "available"
   }, [])
@@ -278,9 +282,29 @@ function ProductContent() {
       rows.push(color ? { label, value: valDisplay, color } : { label, value: valDisplay })
     }
 
-    // 1. Status
+    // 1. Status & Stock Availability
     const meta = getStatusMeta(product)
-    addRow("Status", meta.label, meta.key !== "available" ? "#e74c3c" : undefined)
+    const currentStock = getStockQty(product)
+    const currentBranches = (product?.stock || [])
+      .filter((stk: any) => Number(stk.qty) > 0)
+      .map((stk: any) => ({
+        branchName: stk.branches?.branch_name || (stk.branch_id === 1 ? 'Warehouse Ayutthaya' : `Branch ${stk.branch_id}`),
+        qty: Number(stk.qty)
+      }))
+
+    if (meta.key === 'sold') {
+      addRow("Status", "Sold Out (สินค้าขายแล้ว)", "#e74c3c")
+    } else if (meta.key === 'on_stock' || currentStock > 0) {
+      addRow("Status", "พร้อมส่ง (In Stock)", "#27ae60")
+      addRow("Stock Quantity", `${currentStock} แผ่น/ชิ้น`, "#27ae60")
+      if (currentBranches.length > 0) {
+        addRow("Location / คลัง", currentBranches.map((b: any) => `${b.branchName} (${b.qty} ชิ้น)`).join(", "))
+      }
+    } else if (meta.key === 'pre_order') {
+      addRow("Status", "สินค้าสั่งผลิต (Pre-order)", "#e67e22")
+    } else {
+      addRow("Status", meta.label, meta.key !== "available" ? "#e74c3c" : undefined)
+    }
 
     // 2. Material
     addRow("Material", s.material ?? s.wood_type)
@@ -471,9 +495,10 @@ function ProductContent() {
   // ใช้ Logic เดียวกับหน้าหลักสำหรับการ์ดสินค้าแนะนำ
   const renderRecBadge = (status: string) => {
     const s = String(status || "").toLowerCase().trim()
-    if (!s || s === "available") return null
+    if (!s || s === "available" || s === "pre_order") return null
 
     const STATUS_BADGE: Record<string, any> = {
+      on_stock: { text: "พร้อมส่ง (In Stock)", style: "pill" },
       on_request: { text: "มีคนกำลังสนใจ", style: "pill" },
       pending: { text: "BOOKED", jp: "Reserved", style: "circle" },
       sold: { text: "SOLD OUT", jp: "Sold", style: "circle" }, // ✅ ให้เหมือนหน้าหลัก
@@ -485,6 +510,7 @@ function ProductContent() {
     const cls = escClass(s)
 
     if (s === 'on_request') return <div className={`rec-badge on_request`}>{meta.text}</div>
+    if (s === 'on_stock') return <div className="rec-badge" style={{ background: '#27ae60' }}>พร้อมส่ง</div>
     if (meta.style === 'circle') {
       return (
         <div className="status-overlay">
@@ -504,7 +530,17 @@ function ProductContent() {
   const meta = getStatusMeta(product)
   const discountInfo = getDiscountInfo(product)
   const specList = getSpecRows()
-  const maxStock = getStockQty(product)
+  const totalStock = getStockQty(product)
+  const stockBranches = (product?.stock || [])
+    .filter((s: any) => Number(s.qty) > 0)
+    .map((s: any) => ({
+      branchName: s.branches?.branch_name || (s.branch_id === 1 ? 'Warehouse Ayutthaya' : `Branch ${s.branch_id}`),
+      qty: Number(s.qty)
+    }))
+  const isSoldOut = meta.key === 'sold' || product?.status === 'Sold Out'
+  const isOnStock = meta.key === 'on_stock' || totalStock > 0
+  const isAvailableStock = isOnStock && totalStock > 0
+  const maxStock = isAvailableStock ? totalStock : (isSoldOut ? 0 : 99)
   return (
     <>
       <style jsx global>{`
@@ -852,43 +888,93 @@ function ProductContent() {
                   </>
                 ) : currency(product.price)}
               </div>
-
             </div>
 
-            <div className="qty-row">
-              <div className="qty-control">
-                {/* ปุ่มลบ: ถ้า qty <= 1 ให้ disable ปุ่มไปเลย */}
-                <button
-                  className="qty-btn"
-                  onClick={() => setQty(Math.max(1, qty - 1))}
-                  disabled={qty <= 1}
-                >
-                  −
-                </button>
-
-                <input className="qty-input" value={qty} readOnly />
-
-                {/* ปุ่มบวก: เปลี่ยนจาก 99 เป็น maxStock และ disable เมื่อ qty ถึง maxStock */}
-                <button
-                  className="qty-btn"
-                  onClick={() => setQty(Math.min(maxStock, qty + 1))}
-                  disabled={qty >= maxStock}
-                >
-                  +
-                </button>
+            {/* Stock Availability Box */}
+            <div style={{
+              margin: '0 0 20px 0',
+              padding: '12px 16px',
+              borderRadius: '6px',
+              border: isSoldOut ? '1px solid #fed7d7' : isOnStock ? '1px solid #c6f6d5' : '1px solid #feebc8',
+              backgroundColor: isSoldOut ? '#fff5f5' : isOnStock ? '#f0fff4' : '#fffaf0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '0.92rem' }}>
+                {isSoldOut ? (
+                  <>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#e53e3e', display: 'inline-block' }} />
+                    <span style={{ color: '#c53030' }}>สินค้าหมดชั่วคราว / ขายแล้ว (Sold Out)</span>
+                  </>
+                ) : isOnStock ? (
+                  <>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38a169', display: 'inline-block' }} />
+                    <span style={{ color: '#276749' }}>
+                      พร้อมส่งในสต็อก: <strong>{totalStock}</strong> ชิ้น
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dd6b20', display: 'inline-block' }} />
+                    <span style={{ color: '#c05621' }}>สินค้าสั่งผลิต (Pre-order / Made to Order)</span>
+                  </>
+                )}
               </div>
-
-              {/* (Optional) แสดงจำนวนสต็อกให้ลูกค้าเห็นด้วยก็ได้ */}
-              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                Unit(s) {maxStock > 0 && <span style={{ fontSize: '0.8em' }}> (Available: {maxStock})</span>}
-              </span>
+              {isOnStock && stockBranches.length > 0 && (
+                <div style={{ fontSize: '0.82rem', color: '#4a5568', paddingLeft: '16px' }}>
+                  สถานที่เก็บ: {stockBranches.map((b: any) => `${b.branchName} (${b.qty} ชิ้น)`).join(', ')}
+                </div>
+              )}
             </div>
+
+            {!isSoldOut && (
+              <div className="qty-row">
+                <div className="qty-control">
+                  {/* ปุ่มลบ: ถ้า qty <= 1 ให้ disable ปุ่มไปเลย */}
+                  <button
+                    className="qty-btn"
+                    onClick={() => setQty(Math.max(1, qty - 1))}
+                    disabled={qty <= 1}
+                  >
+                    −
+                  </button>
+
+                  <input className="qty-input" value={qty} readOnly />
+
+                  {/* ปุ่มบวก: disable เมื่อ qty ถึง maxStock */}
+                  <button
+                    className="qty-btn"
+                    onClick={() => setQty(Math.min(maxStock, qty + 1))}
+                    disabled={qty >= maxStock}
+                  >
+                    +
+                  </button>
+                </div>
+
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                  Unit(s) {isOnStock && totalStock > 0 && (
+                    <span style={{ fontSize: '0.85em', color: '#27ae60', fontWeight: 500 }}>
+                      {' '}(คงเหลือ {totalStock} ชิ้น)
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
 
             <div className="actions">
-              <button className="btn btn-primary" onClick={handleAddToCart} disabled={processing}>
-                {processing ? "Processing..." : "Add to Cart"}
+              <button
+                className="btn btn-primary"
+                onClick={handleAddToCart}
+                disabled={processing || isSoldOut}
+              >
+                {isSoldOut ? "Out of Stock" : processing ? "Processing..." : "Add to Cart"}
               </button>
-              <button className="btn" onClick={handleDeposit} disabled={processing}>
+              <button
+                className="btn"
+                onClick={handleDeposit}
+                disabled={processing || isSoldOut}
+              >
                 Deposit
               </button>
             </div>

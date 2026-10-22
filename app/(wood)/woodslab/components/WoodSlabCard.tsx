@@ -16,9 +16,10 @@ export default function WoodSlabCard({ product, discountInfo }: WoodSlabCardProp
 
   const renderBadge = (status: string) => {
     const s = normalizeStatus(status);
-    if (!s || s === "available") return null;
+    if (!s || s === "available" || s === "pre_order") return null;
 
     const STATUS_BADGE: Record<string, any> = {
+      on_stock: { text: "พร้อมส่ง (In Stock)", style: "pill" },
       on_request: { text: "มีคนกำลังสนใจ", style: "pill" },
       pending: { text: "BOOKED", jp: "Reserved", style: "circle" },
       sold: { text: "SOLD OUT", jp: "Sold", style: "circle" },

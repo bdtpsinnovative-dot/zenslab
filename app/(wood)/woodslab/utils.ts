@@ -45,24 +45,28 @@ export const normalizeStatus = (raw: string) => {
   const s = String(raw || "").toLowerCase().trim();
   if (s === "active") return "available";
   if (s === "inactive") return "archived";
+  if (s === "sold out" || s === "sold_out" || s === "sold") return "sold";
+  if (s === "on stock" || s === "on_stock" || s === "in stock" || s === "in_stock") return "on_stock";
+  if (s === "pre-order" || s === "pre-oder" || s === "preorder") return "pre_order";
   return s;
 };
 
 /**
- * แก้ไขจุดนี้: ปิดการเช็คสต็อก (RFID) เพื่อให้สินค้าที่อัพโหลดใหม่แสดงผลได้ทันที
+ * คำนวณสถานะสินค้า: เช็คสต็อกจริง, สินค้าพร้อมส่ง (On Stock), หรือ Pre-order / Sold Out
  */
 export const getEffectiveStatus = (row: any) => {
-  // --- ส่วนที่เคยทำให้สินค้าหาย/กลายเป็น Sold เมื่อไม่มีสต็อก ถูกปิดไว้ชั่วคราว ---
-  // const qty = getStockQty(row);
-  // if (qty <= 0) return "sold"; 
+  const rawSt = normalizeStatus(row?.status);
+  if (rawSt === "sold") return "sold";
+  if (rawSt === "draft") return "draft";
+  if (rawSt === "on_request") return "on_request";
+  if (rawSt === "pending" || rawSt === "reserved") return "pending";
 
-  const st = normalizeStatus(row?.status);
-  if (st === "draft") return "draft";
-  if (st === "on_request") return "on_request";
-  if (st === "pending" || st === "reserved") return "pending";
-  
-  if (st) return st;
-  return "available"; // ถ้าไม่มีสถานะใน DB ให้ถือว่า Available ไว้ก่อนเพื่อให้แสดงผล
+  const totalStock = getStockQty(row);
+  if (rawSt === "on_stock" || totalStock > 0) return "on_stock";
+  if (rawSt === "pre_order") return "pre_order";
+
+  if (rawSt) return rawSt;
+  return "available";
 };
 
 export const calculateProductDiscount = (product: any, activeDiscounts: any[]) => {

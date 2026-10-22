@@ -100,64 +100,7 @@ export async function getProducts(
     return { data: [], count: 0 }
   }
 
-  // ค้นหาแบบสุ่มสินค้าบนหน้า All Items (เมื่อไม่ได้ระบุการค้นหาหรือฟิลเตอร์ย่อย)
-  const isDefaultAll = category === 'all' && 
-    !filters.q && 
-    !filters.type && 
-    !filters.material && 
-    !filters.panel && 
-    filters.status === 'all' &&
-    !filters.lengthMin &&
-    !filters.lengthMax &&
-    !filters.widthMin &&
-    !filters.widthMax &&
-    !filters.thickMin &&
-    !filters.thickMax &&
-    !filters.priceMin &&
-    !filters.priceMax &&
-    filters.discount === 'all';
-
-  if (isDefaultAll) {
-    console.log("SERVER ACTION - Randomizing all items landing page")
-    try {
-      const countQuery = supabaseServer
-        .from(TABLE)
-        .select('id', { count: 'exact', head: true })
-      
-      if (categoryId) countQuery.eq('category_id', categoryId)
-      if (excludeCategories?.length) countQuery.not('category_id', 'in', `(${excludeCategories.join(',')})`)
-      if (specType) countQuery.eq('specs->>spec_type', specType)
-
-      const { count: totalCount, error: countErr } = await countQuery
-      if (countErr) throw countErr
-
-      const total = totalCount || 0
-      const poolSize = Math.min(200, total)
-      const maxOffset = Math.max(0, total - poolSize)
-      const randomOffset = Math.floor(Math.random() * maxOffset)
-
-      let poolQuery = supabaseServer
-        .from(TABLE)
-        .select(LIST_SELECT_ACTIVE)
-        .range(randomOffset, randomOffset + poolSize - 1)
-        
-      if (categoryId) poolQuery = poolQuery.eq('category_id', categoryId)
-      if (excludeCategories?.length) poolQuery = poolQuery.not('category_id', 'in', `(${excludeCategories.join(',')})`)
-      if (specType) poolQuery = poolQuery.eq('specs->>spec_type', specType)
-
-      const { data: poolData, error: poolErr } = await poolQuery
-      if (poolErr) throw poolErr
-
-      if (poolData && poolData.length > 0) {
-        const shuffled = [...poolData].sort(() => Math.random() - 0.5)
-        const pageData = shuffled.slice(0, limit)
-        console.log("SERVER ACTION - Random success! Row count:", total, "Returned data length:", pageData.length)
-        return { data: pageData, count: total }
-      }
-    } catch (err) {
-      console.error("SERVER ACTION - Randomization failed, falling back to standard query:", err)
-    }
-  }
+  // ✅ เรียงลำดับ: สินค้ามีสต็อกพร้อมส่ง (On Stock) ขึ้นก่อนเสมอ ตามด้วย Pre-order และ Sold Out
 
   let query = supabaseServer
     .from(TABLE)
@@ -287,7 +230,7 @@ export async function getDistinctOptions(category: CategoryKey = 'all') {
 export async function getProductDetail(id?: string) {
   if (!id) return null
   // ⚠️ หน้ารายละเอียดคงไว้แบบเดิม (Left Join) เพื่อให้ยังเข้าดูของที่หมดแล้วได้ (แต่จะขึ้น Sold Out)
-  const { data } = await supabaseServer.from(TABLE).select('*, stock(qty)').eq('id', id).single()
+  const { data } = await supabaseServer.from(TABLE).select('*, stock(qty, branch_id, branches(branch_name))').eq('id', id).single()
   return data
 }
 
