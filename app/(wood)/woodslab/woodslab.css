@@ -195,14 +195,70 @@ h1 span { color: var(--accent); }
 .mf-range input { background: transparent; border: 1px solid var(--line); color: var(--text-main); padding: 8px; width: 90px; text-align: center; font-size: 0.85rem; border-radius: 4px; }
 .mf-range input:focus { border-color: var(--accent); }
 
-/* Badges */
+/* Badges (Top-Right Corner, Small & Harmonious with Woodslabs Theme) */
 .badge-status {
-  position: absolute; top: 12px; left: 12px;
-  padding: 6px 10px; background: rgba(0,0,0,0.65);
-  color: #fff; font-size: 12px; border-radius: 999px;
-  z-index: 2; letter-spacing: 0.5px; backdrop-filter: blur(6px);
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: rgba(44, 41, 26, 0.84);
+  color: #f7f4ef;
+  font-family: 'Prompt', var(--font-sans), sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  z-index: 2;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-variant-numeric: lining-nums tabular-nums;
+  pointer-events: none;
 }
-.badge-available { background: rgba(0,128,0,.65); }
+
+.badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.badge-dot.dot-in-stock {
+  background: #52b788;
+  box-shadow: 0 0 5px rgba(82, 183, 136, 0.8);
+}
+
+.badge-dot.dot-pre-order {
+  background: #b07d4f;
+}
+
+.badge-on_stock {
+  background: rgba(44, 41, 26, 0.86);
+  color: #f7f4ef;
+  border: 1px solid rgba(212, 196, 184, 0.35);
+  box-shadow: 0 2px 8px rgba(44, 41, 26, 0.18);
+}
+
+.badge-pre_order {
+  background: rgba(242, 234, 223, 0.88);
+  color: #5c4033;
+  border: 1px solid rgba(132, 120, 96, 0.32);
+  box-shadow: 0 2px 6px rgba(44, 41, 26, 0.08);
+}
+
+[data-theme="dark"] .badge-pre_order {
+  background: rgba(35, 31, 27, 0.86);
+  color: #d8c8b8;
+  border-color: rgba(168, 152, 128, 0.3);
+}
+
+.badge-available { background: rgba(44, 41, 26, 0.82); }
 .badge-pending { background: rgba(128,128,128,.65); }
 .badge-sold { background: rgba(180,0,0,.65); }
 .badge-archived { background: rgba(60,60,60,.65); }

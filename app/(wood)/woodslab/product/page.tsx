@@ -210,29 +210,25 @@ function ProductContent() {
   }, [showQR, idParam])
 
   // --- Helpers ---
-  // ✅ LOGIC: เช็คสถานะและสต็อกจริง
+  // ✅ LOGIC: เช็คสถานะและสต็อกจริงจากตาราง stock
   const getEffectiveStatus = useCallback((row: any) => {
     // 1. ถ้ามี Legacy pending flag
     if (row?.specs?.pending === true || row?.specs?.pending === "true") return "pending"
 
-    // 2. เช็ค Status
+    // 2. เช็ค Status พิเศษ
     const st = String(row?.status || "").toLowerCase().trim()
     if (st === "sold" || st === "sold out" || st === "sold_out") return "sold"
     if (st === "draft") return "draft"
     if (st === "on_request") return "on_request"
-
-    // ถ้าสถานะเป็น Reserved/Pending ให้โชว์ Booked แม้จะมีของ
     if (st === "pending" || st === "reserved" || st === "hold") return "pending"
+    if (st === "inactive" || st === "archived") return "archived"
 
-    if (st === "inactive") return "archived"
-    if (st === "active") return "available"
-    if (st === "on stock" || st === "on_stock" || st === "in stock" || st === "in_stock") return "on_stock"
-    if (st === "pre-order" || st === "pre-oder" || st === "preorder") return "pre_order"
-
+    // 3. เช็คจำนวนสต็อกจริงจากตาราง stock
     const qty = getStockQty(row)
     if (qty > 0) return "on_stock"
 
-    return st || "available"
+    // 4. หากไม่มีสต็อกพร้อมส่ง (qty <= 0) ให้แสดงเป็น Pre-order
+    return "pre_order"
   }, [])
 
   const getStatusMeta = useCallback((row: any) => {
@@ -253,7 +249,7 @@ function ProductContent() {
       })
     })
     if (matching.length === 0) return null
-    let best = null, maxSave = 0
+    let best: any = null, maxSave = 0
     matching.forEach(d => {
       let save = 0
       const val = parseFloat(d.value)
@@ -293,15 +289,15 @@ function ProductContent() {
       }))
 
     if (meta.key === 'sold') {
-      addRow("Status", "Sold Out (สินค้าขายแล้ว)", "#e74c3c")
-    } else if (meta.key === 'on_stock' || currentStock > 0) {
-      addRow("Status", "พร้อมส่ง (In Stock)")
-      addRow("Stock Quantity", `${currentStock} แผ่น/ชิ้น`)
+      addRow("Status", "Sold Out (สินค้าขายแล้ว)", "#802e19")
+    } else if (currentStock > 0) {
+      addRow("Status", "พร้อมส่ง (In Stock)", "#2d6a4f")
+      addRow("Stock Quantity", `${currentStock} แผ่น/ชิ้น`, "#2c291a")
       if (currentBranches.length > 0) {
         addRow("Location / คลัง", currentBranches.map((b: any) => `${b.branchName} (${b.qty} ชิ้น)`).join(", "))
       }
     } else if (meta.key === 'pre_order') {
-      addRow("Status", "สินค้าสั่งผลิต (Pre-order)")
+      addRow("Status", "สินค้าสั่งผลิต (Pre-order)", "#6e4739")
     } else {
       addRow("Status", meta.label)
     }
@@ -487,15 +483,63 @@ function ProductContent() {
   }
 
   // --- RENDER HELPERS ---
-  // ค้นหาฟังก์ชันนี้แล้วแก้เป็นแบบนี้ครับนาย
-  const renderStatusOverlay = (meta: any) => {
-    return null; // สั่งให้ไม่ต้องวาดอะไรเลย
+  const renderStatusOverlay = (meta: any, stockCount: number) => {
+    if (meta.key === "on_stock" && stockCount > 0) {
+      return (
+        <div className="badge-status badge-on_stock">
+          <span className="badge-dot dot-in-stock" />
+          <span>IN STOCK · {stockCount}</span>
+        </div>
+      )
+    }
+    if (meta.key === "pre_order" || meta.key === "available") {
+      return (
+        <div className="badge-status badge-pre_order">
+          <span className="badge-dot dot-pre-order" />
+          <span>PRE-ORDER</span>
+        </div>
+      )
+    }
+    if (meta.key === "sold") {
+      return (
+        <div className="badge-status badge-sold">
+          <span>SOLD OUT</span>
+        </div>
+      )
+    }
+    if (meta.key === "pending") {
+      return (
+        <div className="badge-status badge-pending">
+          <span>BOOKED</span>
+        </div>
+      )
+    }
+    return null
   }
 
-  // ใช้ Logic เดียวกับหน้าหลักสำหรับการ์ดสินค้าแนะนำ
-  const renderRecBadge = (status: string) => {
-    const s = String(status || "").toLowerCase().trim()
-    if (!s || s === "available" || s === "on_stock" || s === "pre_order") return null
+  // ใช้ Logic เดียวกับหน้าหลักสำหรับการ์ดสินค้าแนะนำ (มุมขวาบน ตัวหนังสือเล็กเข้ากับระบบ)
+  const renderRecBadge = (rec: any) => {
+    const s = getEffectiveStatus(rec)
+    const recQty = getStockQty(rec)
+    if (!s) return null
+
+    if (s === "on_stock") {
+      return (
+        <div className="badge-status badge-on_stock">
+          <span className="badge-dot dot-in-stock" />
+          <span>IN STOCK{recQty > 0 ? ` · ${recQty}` : ""}</span>
+        </div>
+      )
+    }
+
+    if (s === "pre_order") {
+      return (
+        <div className="badge-status badge-pre_order">
+          <span className="badge-dot dot-pre-order" />
+          <span>PRE-ORDER</span>
+        </div>
+      )
+    }
 
     const STATUS_BADGE: Record<string, any> = {
       on_request: { text: "มีคนกำลังสนใจ", style: "pill" },
@@ -815,7 +859,7 @@ function ProductContent() {
           <div className="gallery">
             <div className="main-image-frame" id="zoomContainer" ref={zoomContainerRef} onMouseMove={handleZoom} onMouseLeave={handleLeaveZoom} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
               {activeImage ? <img src={activeImage} alt={product.name} id="mainImage" ref={mainImageRef} /> : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#666' }}>No Image</div>}
-              {renderStatusOverlay(meta)}
+              {renderStatusOverlay(meta, totalStock)}
               <div className="zoom-hint">HOVER TO ZOOM</div>
               {dedupImages.length > 1 && (
                 <>
@@ -847,6 +891,140 @@ function ProductContent() {
               </div>
             </div>
 
+            {/* ✅ กล่องแสดงสถานะสต็อกเด่นชัด เข้ากับธีมระบบ (มองเห็นได้ทันที) */}
+            <div
+              className="stock-availability-banner"
+              style={{
+                marginBottom: '22px',
+                padding: '16px 20px',
+                borderRadius: '6px',
+                background: isSoldOut
+                  ? 'linear-gradient(135deg, #f5ebe8 0%, #ebd9d4 100%)'
+                  : isAvailableStock
+                  ? 'linear-gradient(135deg, #f6f1ea 0%, #eae0d3 100%)'
+                  : 'linear-gradient(135deg, #f5efe6 0%, #ebe1d4 100%)',
+                border: isSoldOut
+                  ? '1px solid #d4b2a7'
+                  : isAvailableStock
+                  ? '1px solid #c5b49e'
+                  : '1px solid #d4c4b8',
+                borderLeft: isSoldOut
+                  ? '5px solid #802e19'
+                  : isAvailableStock
+                  ? '5px solid #2d6a4f'
+                  : '5px solid #8c5e3c',
+                boxShadow: '0 4px 14px rgba(44, 41, 26, 0.06)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span
+                    style={{
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      background: isSoldOut
+                        ? '#802e19'
+                        : isAvailableStock
+                        ? '#2d6a4f'
+                        : '#b07d4f',
+                      boxShadow: isSoldOut
+                        ? '0 0 0 3px rgba(128, 46, 25, 0.16)'
+                        : isAvailableStock
+                        ? '0 0 0 4px rgba(45, 106, 79, 0.2)'
+                        : '0 0 0 3px rgba(176, 125, 79, 0.2)',
+                    }}
+                  />
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "'Prompt', 'Kanit', sans-serif",
+                        fontSize: '1.08rem',
+                        fontWeight: 600,
+                        color: isSoldOut ? '#802e19' : '#2c291a',
+                        letterSpacing: '0.02em',
+                        lineHeight: 1.25,
+                      }}
+                    >
+                      {isSoldOut
+                        ? 'สินค้าขายแล้ว (SOLD OUT)'
+                        : meta.key === 'pending'
+                        ? 'สินค้าติดจอง (BOOKED)'
+                        : isAvailableStock
+                        ? 'มีสินค้าพร้อมส่ง (IN STOCK)'
+                        : 'สินค้าพรีออเดอร์ (PRE-ORDER)'}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "'Kanit', sans-serif",
+                        fontSize: '0.82rem',
+                        color: '#6e6250',
+                        marginTop: '2px',
+                      }}
+                    >
+                      {isSoldOut
+                        ? 'สินค้าชิ้นนี้ถูกจำหน่ายแล้ว สอบถามชิ้นงานใกล้เคียงได้'
+                        : meta.key === 'pending'
+                        ? 'สินค้าชิ้นนี้อยู่ระหว่างการจอง'
+                        : isAvailableStock
+                        ? 'มีของจริงในคลัง พร้อมจัดส่งทันที'
+                        : 'สั่งผลิตตามออเดอร์ (Made to Order)'}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    background: isSoldOut
+                      ? '#802e19'
+                      : isAvailableStock
+                      ? '#2c291a'
+                      : '#6e4739',
+                    color: '#f7f4ef',
+                    padding: '6px 14px',
+                    borderRadius: '4px',
+                    fontFamily: "'Prompt', sans-serif",
+                    fontSize: '0.92rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.05em',
+                    fontVariantNumeric: 'lining-nums tabular-nums',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {isSoldOut
+                    ? 'SOLD OUT'
+                    : meta.key === 'pending'
+                    ? 'RESERVED'
+                    : isAvailableStock
+                    ? `คงเหลือ ${totalStock} ชิ้น`
+                    : 'PRE-ORDER'}
+                </div>
+              </div>
+
+              {isAvailableStock && stockBranches.length > 0 && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    paddingTop: '10px',
+                    borderTop: '1px dashed #cbbba8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.88rem',
+                    color: '#4a4235',
+                    fontFamily: "'Prompt', 'Kanit', sans-serif",
+                    fontVariantNumeric: 'lining-nums tabular-nums',
+                  }}
+                >
+                  <span style={{ color: '#802e19', fontWeight: 600 }}>คลังสินค้า:</span>
+                  <span style={{ fontWeight: 500 }}>
+                    {stockBranches.map((b: any) => `${b.branchName} (${b.qty} ชิ้น)`).join(' · ')}
+                  </span>
+                </div>
+              )}
+            </div>
+
             <table className="spec-table">
               <tbody>
                 {specList.map((r: any, idx: number) => (
@@ -864,7 +1042,7 @@ function ProductContent() {
                       width: '60%',
                       textAlign: 'right',
                       fontFamily: "'Prompt', sans-serif",
-                      fontWeight: 400,
+                      fontWeight: r.label === 'Status' || r.label === 'Stock Quantity' ? 600 : 400,
                       fontSize: '0.85rem',
                       color: r.color || '#2c2c2c',
                       fontVariantNumeric: 'lining-nums tabular-nums',
@@ -912,10 +1090,37 @@ function ProductContent() {
                   </button>
                 </div>
 
-                <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
-                  Unit(s) {isOnStock && totalStock > 0 && (
-                    <span style={{ fontSize: '0.85em', color: '#666' }}>
-                      {' '}(มีในสต็อก: {totalStock} ชิ้น)
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span>Unit(s)</span>
+                  {isAvailableStock ? (
+                    <span
+                      style={{
+                        background: 'rgba(44, 41, 26, 0.08)',
+                        border: '1px solid #c5b49e',
+                        color: '#2c291a',
+                        padding: '3px 10px',
+                        borderRadius: '4px',
+                        fontSize: '0.84rem',
+                        fontWeight: 600,
+                        fontFamily: "'Prompt', sans-serif",
+                      }}
+                    >
+                      ● พร้อมส่ง {totalStock} ชิ้น
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        background: 'rgba(110, 71, 57, 0.1)',
+                        border: '1px solid #d4c4b8',
+                        color: '#6e4739',
+                        padding: '3px 10px',
+                        borderRadius: '4px',
+                        fontSize: '0.82rem',
+                        fontWeight: 500,
+                        fontFamily: "'Prompt', sans-serif",
+                      }}
+                    >
+                      ● พรีออเดอร์ (สั่งผลิต)
                     </span>
                   )}
                 </span>
@@ -978,13 +1183,12 @@ function ProductContent() {
               recommendations.map((rec) => {
                 const recImg = normalizeImg(rec.image_url) || normalizeImg(rec.specs?.main_image?.url)
                 const recDiscount = getDiscountInfo(rec)
-                const effectiveStatus = getEffectiveStatus(rec) // ✅ ใช้ status ที่ถูกต้องตาม stock
 
                 return (
                   <a key={rec.id} className="rec-card" href={`/woodslab/product?id=${rec.id}`}>
                     <div className="rec-img">
                       {recImg ? <img src={recImg} alt={rec.name} /> : <div className="rec-noimg">No Image</div>}
-                      {renderRecBadge(effectiveStatus)}
+                      {renderRecBadge(rec)}
                     </div>
                     <div className="rec-body">
                       <div className="rec-name">{rec.name || "ติดต่อสอบถาม"}</div>

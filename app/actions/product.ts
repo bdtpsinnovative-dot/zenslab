@@ -125,9 +125,11 @@ export async function getProducts(
   if (filters.panel) query = query.eq('specs->>panel_craft', filters.panel)
 
   const statusMap: Record<string, string[]> = {
-    available: ["available", "active"],
+    on_stock: ["On Stock", "on_stock", "in_stock", "In Stock"],
+    pre_order: ["Pre-Oder", "Pre-order", "pre_order", "preorder"],
+    available: ["available", "active", "On Stock", "Pre-Oder", "Pre-order"],
     pending: ["pending", "reserved", "hold", "on_request"],
-    sold: ["sold", "archived", "inactive"],
+    sold: ["Sold Out", "sold", "archived", "inactive"],
     draft: ["draft"],
   }
   if (filters.status !== 'all' && statusMap[filters.status]) {
@@ -154,7 +156,18 @@ export async function getProducts(
   } else {
     console.log("SERVER ACTION - Supabase query succeeded. Row count:", count, "Data length:", data?.length)
   }
-  return { data: data || [], count: count || 0 }
+
+  // เรียงให้สินค้าที่มีจำนวนสต็อกจริง (qty > 0) ขึ้นก่อนเสมอในหน้านั้นๆ
+  const sortedData = (data || []).slice().sort((a: any, b: any) => {
+    const qtyA = Array.isArray(a?.stock) ? a.stock.reduce((s: number, i: any) => s + (Number(i?.qty) || 0), 0) : 0
+    const qtyB = Array.isArray(b?.stock) ? b.stock.reduce((s: number, i: any) => s + (Number(i?.qty) || 0), 0) : 0
+    const hasStockA = qtyA > 0 ? 1 : 0
+    const hasStockB = qtyB > 0 ? 1 : 0
+    if (hasStockA !== hasStockB) return hasStockB - hasStockA
+    return 0
+  })
+
+  return { data: sortedData, count: count || 0 }
 }
 
 // 1.3 ✅ ดึงค่า Min/Max สำหรับ Slider

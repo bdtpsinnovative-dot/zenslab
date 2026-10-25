@@ -37,7 +37,7 @@ export const getSizeText = (specsOrRow: any, rowFallback?: any) => {
 };
 
 export const getStockQty = (row: any) => {
-  if (!row.stock || !Array.isArray(row.stock)) return 0;
+  if (!row?.stock || !Array.isArray(row.stock)) return 0;
   return row.stock.reduce((sum: number, item: any) => sum + (parseFloat(item.qty) || 0), 0);
 };
 
@@ -47,26 +47,29 @@ export const normalizeStatus = (raw: string) => {
   if (s === "inactive") return "archived";
   if (s === "sold out" || s === "sold_out" || s === "sold") return "sold";
   if (s === "on stock" || s === "on_stock" || s === "in stock" || s === "in_stock") return "on_stock";
-  if (s === "pre-order" || s === "pre-oder" || s === "preorder") return "pre_order";
+  if (s === "pre-order" || s === "pre-oder" || s === "preorder" || s === "pre_order") return "pre_order";
   return s;
 };
 
 /**
- * คำนวณสถานะสินค้า: เช็คสต็อกจริง, สินค้าพร้อมส่ง (On Stock), หรือ Pre-order / Sold Out
+ * คำนวณสถานะสินค้า: เช็คสต็อกจริงจากตาราง stock ก่อน
+ * - ถ้ามี stock qty > 0 -> on_stock (พร้อมส่ง)
+ * - ถ้าไม่มีสต็อก (qty <= 0) และไม่ได้ขายแล้ว/ติดจอง -> pre_order (พรีออเดอร์)
  */
 export const getEffectiveStatus = (row: any) => {
+  if (row?.specs?.pending === true || row?.specs?.pending === "true") return "pending";
+
   const rawSt = normalizeStatus(row?.status);
   if (rawSt === "sold") return "sold";
   if (rawSt === "draft") return "draft";
+  if (rawSt === "archived") return "archived";
   if (rawSt === "on_request") return "on_request";
-  if (rawSt === "pending" || rawSt === "reserved") return "pending";
+  if (rawSt === "pending" || rawSt === "reserved" || rawSt === "hold") return "pending";
 
   const totalStock = getStockQty(row);
-  if (rawSt === "on_stock" || totalStock > 0) return "on_stock";
-  if (rawSt === "pre_order") return "pre_order";
+  if (totalStock > 0) return "on_stock";
 
-  if (rawSt) return rawSt;
-  return "available";
+  return "pre_order";
 };
 
 export const calculateProductDiscount = (product: any, activeDiscounts: any[]) => {

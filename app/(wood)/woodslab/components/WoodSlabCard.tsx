@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import { currency, normalizeImg, getEffectiveStatus, getSizeText, escClass, normalizeStatus } from '../utils';
+import { currency, normalizeImg, getEffectiveStatus, getStockQty, getSizeText, escClass, normalizeStatus } from '../utils';
 
 interface WoodSlabCardProps {
   product: any;
@@ -12,11 +12,30 @@ export default function WoodSlabCard({ product, discountInfo }: WoodSlabCardProp
   const imgPath = r.image_url || r.specs?.main_image?.path || r.specs?.main_image?.url;
   const img = normalizeImg(imgPath);
   const st = getEffectiveStatus(r);
+  const stockQty = getStockQty(r);
   const displayName = (r.name && r.name !== "-") ? r.name : "ติดต่อสอบถาม";
 
   const renderBadge = (status: string) => {
     const s = normalizeStatus(status);
-    if (!s || s === "available" || s === "on_stock" || s === "pre_order") return null;
+    if (!s) return null;
+
+    if (s === "on_stock") {
+      return (
+        <div className="badge-status badge-on_stock">
+          <span className="badge-dot dot-in-stock" />
+          <span>IN STOCK{stockQty > 0 ? ` · ${stockQty}` : ""}</span>
+        </div>
+      );
+    }
+
+    if (s === "pre_order" || s === "available") {
+      return (
+        <div className="badge-status badge-pre_order">
+          <span className="badge-dot dot-pre-order" />
+          <span>PRE-ORDER</span>
+        </div>
+      );
+    }
 
     const STATUS_BADGE: Record<string, any> = {
       on_request: { text: "มีคนกำลังสนใจ", style: "pill" },
