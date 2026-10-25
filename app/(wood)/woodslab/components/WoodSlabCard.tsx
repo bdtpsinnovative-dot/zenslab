@@ -23,7 +23,7 @@ export default function WoodSlabCard({ product, discountInfo }: WoodSlabCardProp
       return (
         <div className="badge-status badge-on_stock">
           <span className="badge-dot dot-in-stock" />
-          <span>IN STOCK{stockQty > 0 ? ` · ${stockQty}` : ""}</span>
+          <span>STOCK</span>
         </div>
       );
     }

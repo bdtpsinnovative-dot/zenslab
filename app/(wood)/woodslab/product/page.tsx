@@ -488,7 +488,7 @@ function ProductContent() {
       return (
         <div className="badge-status badge-on_stock">
           <span className="badge-dot dot-in-stock" />
-          <span>IN STOCK · {stockCount}</span>
+          <span>STOCK</span>
         </div>
       )
     }
@@ -520,14 +520,13 @@ function ProductContent() {
   // ใช้ Logic เดียวกับหน้าหลักสำหรับการ์ดสินค้าแนะนำ (มุมขวาบน ตัวหนังสือเล็กเข้ากับระบบ)
   const renderRecBadge = (rec: any) => {
     const s = getEffectiveStatus(rec)
-    const recQty = getStockQty(rec)
     if (!s) return null
 
     if (s === "on_stock") {
       return (
         <div className="badge-status badge-on_stock">
           <span className="badge-dot dot-in-stock" />
-          <span>IN STOCK{recQty > 0 ? ` · ${recQty}` : ""}</span>
+          <span>STOCK</span>
         </div>
       )
     }

@@ -198,35 +198,50 @@ h1 span { color: var(--accent); }
 /* Badges (Top-Right Corner, Small & Harmonious with Woodslabs Theme) */
 .badge-status {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
   left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  background: rgba(44, 41, 26, 0.84);
+  gap: 4px;
+  padding: 3px 6px;
+  background: rgba(44, 41, 26, 0.82);
   color: #f7f4ef;
   font-family: 'Prompt', var(--font-sans), sans-serif;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-radius: 3px;
+  border-radius: 2px;
   z-index: 2;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   font-variant-numeric: lining-nums tabular-nums;
   pointer-events: none;
 }
 
 .badge-dot {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
+}
+
+@media (max-width: 550px) {
+  .badge-status {
+    top: 5px;
+    right: 5px;
+    padding: 2px 5px;
+    font-size: 7px;
+    gap: 3px;
+    letter-spacing: 0.08em;
+  }
+  .badge-dot {
+    width: 3.5px;
+    height: 3.5px;
+  }
 }
 
 .badge-dot.dot-in-stock {
