@@ -11,34 +11,66 @@ const playfair = Playfair_Display({ subsets: ["latin"], weight: ["400", "700"], 
 const inter = Inter({ subsets: ["latin"], weight: ["300", "400"], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: "ZENSLABS | Premium Live Edge Furniture", 
-  description: "Crafting legacy pieces from nature's finest materials.",
   metadataBase: new URL('https://www.zen-slab.com'),
   alternates: {
     canonical: '/',
   },
+  title: {
+    default: "ZENSLAB | แผ่นไม้จริง ไม้แผ่นใหญ่ โต๊ะไม้แผ่นเดียวพรีเมียม Live Edge Furniture",
+    template: "%s | ZENSLAB แผ่นไม้จริงพรีเมียม",
+  },
+  description: "ZENSLAB (เซนสแลป) ศูนย์รวมไม้แผ่นใหญ่ ไม้แผ่นเดียว โต๊ะไม้จริงพรีเมียม ไม้จามจุรี ไม้สัก ไม้วอลนัทธรรมชาติ คัดสรรพิเศษเกรดคุณภาพระดับ Masterpiece สำหรับบ้านและโครงการของคุณ",
+  keywords: [
+    "ZENSLAB",
+    "zenslab",
+    "zen-slab",
+    "zenslabs",
+    "เซนสแลป",
+    "ไม้แผ่นใหญ่",
+    "โต๊ะไม้แผ่นเดียว",
+    "ไม้จริงแผ่นเดียว",
+    "แผ่นไม้สแลป",
+    "live edge table",
+    "โต๊ะไม้จามจุรี",
+    "ไม้สักทอง",
+    "โต๊ะไม้วอลนัท",
+    "wood slabs thailand",
+    "เฟอร์นิเจอร์ไม้จริง",
+    "zenslab by woodden"
+  ],
+  authors: [{ name: "ZENSLAB" }],
+  creator: "ZENSLAB",
   openGraph: {
-    title: "ZENSLABS | Premium Live Edge Furniture",
-    description: "Crafting legacy pieces from nature's finest materials.",
+    title: "ZENSLAB | แผ่นไม้จริง ไม้แผ่นใหญ่ โต๊ะไม้แผ่นเดียวพรีเมียม Live Edge Furniture",
+    description: "ZENSLAB (เซนสแลป) ศูนย์รวมไม้แผ่นใหญ่ ไม้แผ่นเดียว โต๊ะไม้จริงพรีเมียม ไม้จามจุรี ไม้สัก ไม้วอลนัทธรรมชาติ คัดสรรพิเศษเกรดคุณภาพระดับ Masterpiece",
     url: 'https://www.zen-slab.com',
-    siteName: 'ZENSLABS',
+    siteName: 'ZENSLAB',
     images: [
       {
         url: '/icon.png',
         width: 192,
         height: 192,
-        alt: 'ZENSLABS Logo',
+        alt: 'ZENSLAB Logo',
       },
     ],
     locale: 'th_TH',
     type: 'website',
-    images_api_key_override: undefined,
-  } as any,
+  },
   twitter: {
-    card: 'summary',
-    title: "ZENSLABS | Premium Live Edge Furniture",
-    description: "Crafting legacy pieces from nature's finest materials.",
+    card: 'summary_large_image',
+    title: "ZENSLAB | แผ่นไม้จริง ไม้แผ่นใหญ่ โต๊ะไม้แผ่นเดียวพรีเมียม",
+    description: "ZENSLAB (เซนสแลป) ศูนย์รวมไม้แผ่นใหญ่ ไม้แผ่นเดียว โต๊ะไม้จริงพรีเมียม",
     images: ['/icon.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
@@ -48,9 +80,63 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="th">
       {/* ✅ 2. โหลดตัวแปรฟอนต์ทั้งหมดเข้าไปฝังไว้ในหน้าเว็บ */}
       <body className={`antialiased bg-[#FAF9F6] ${inter.variable} ${playfair.variable}`}>
+        {/* JSON-LD Schema for Brand Entity (Organization + WebSite + Store) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": ["Organization", "FurnitureStore"],
+                "name": "ZENSLAB",
+                "alternateName": [
+                  "ZENSLABS",
+                  "zen-slab",
+                  "zenslab",
+                  "เซนสแลป",
+                  "ZENSLAB by Woodden",
+                  "ZENSLAB Thailand"
+                ],
+                "url": "https://www.zen-slab.com",
+                "logo": "https://www.zen-slab.com/icon.png",
+                "description": "ZENSLAB (เซนสแลป) ผู้เชี่ยวชาญด้านแผ่นไม้จริง ไม้แผ่นใหญ่ โต๊ะไม้แผ่นเดียว และเฟอร์นิเจอร์ Live Edge Wood Slabs ระดับพรีเมียมในประเทศไทย",
+                "sameAs": [
+                  "https://www.facebook.com/zenslab.th/",
+                  "https://www.instagram.com/zenslab.th/"
+                ],
+                "address": {
+                  "@type": "PostalAddress",
+                  "streetAddress": "351/7-8 ซอยกรุงเทพ-นนทบุรี 13 ถนนกรุงเทพ-นนทบุรี แขวงบางซื่อ เขตบางซื่อ",
+                  "addressLocality": "บางซื่อ",
+                  "addressRegion": "กรุงเทพมหานคร",
+                  "postalCode": "10800",
+                  "addressCountry": "TH"
+                },
+                "priceRange": "$$"
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": "ZENSLAB",
+                "alternateName": ["ZENSLABS", "zen-slab"],
+                "url": "https://www.zen-slab.com",
+                "description": "ศูนย์รวมไม้แผ่นใหญ่ โต๊ะไม้แผ่นเดียว และเฟอร์นิเจอร์ไม้จริงพรีเมียม",
+                "inLanguage": ["th", "en"],
+                "potentialAction": {
+                  "@type": "SearchAction",
+                  "target": {
+                    "@type": "EntryPoint",
+                    "urlTemplate": "https://www.zen-slab.com/woodslab?search={search_term_string}"
+                  },
+                  "query-input": "required name=search_term_string"
+                }
+              }
+            ])
+          }}
+        />
         {/* Meta Pixel (Facebook Pixel) */}
         <Script id="meta-pixel" strategy="afterInteractive">
           {`
