@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { STATUS_TABS, HEADERS, PRODUCT_TYPES } from '../config';
 // ยายเพิ่ม type CategoryKey เข้ามาตรงนี้นะจ๊ะ
-import { FilterState, type CategoryKey } from '../../actions/product';
+import { FilterState, type CategoryKey } from '@/app/actions/product';
 
 interface FilterBarProps {
   currentCategory: CategoryKey; // ยายแก้ตรงนี้
@@ -66,7 +66,10 @@ export default function FilterBar({
     if (key === "type") return filters.type;
     if (key === "material") return filters.material;
     if (key === "panel") return filters.panel;
-    if (key === "status") return STATUS_TABS.find(t => t.key === filters.status && t.key !== "all")?.label ?? "";
+    if (key === "status") {
+      const tab = STATUS_TABS.find(t => t.key === filters.status && t.key !== "all");
+      return tab ? ((tab as any).chip || tab.label) : "";
+    }
     if (key === "discount") return filters.discount === "yes" ? "On Sale" : "";
     if (["length", "width", "thickness"].includes(key)) {
       const mk = key === "thickness" ? "thick" : key;
@@ -562,6 +565,32 @@ export default function FilterBar({
                     className={`fb-opt${filters.status === t.key ? ' active' : ''}`}
                     onClick={() => handleFilterChange("status", t.key)}
                   >
+                    {t.key === 'on_stock' && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: 7,
+                          height: 7,
+                          borderRadius: '50%',
+                          background: '#27ae60',
+                          marginRight: 6,
+                          verticalAlign: 'middle',
+                        }}
+                      />
+                    )}
+                    {t.key === 'pre_order' && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: 7,
+                          height: 7,
+                          borderRadius: '50%',
+                          background: '#d4af37',
+                          marginRight: 6,
+                          verticalAlign: 'middle',
+                        }}
+                      />
+                    )}
                     {t.label}
                   </button>
                 ))}
@@ -588,7 +617,7 @@ export default function FilterBar({
                   {Array.isArray(presets) && presets.length > 0 && (
                     <div className="fb-range-presets">
                       {presets.map((p: any, idx: number) => (
-                        <button key={idx} className="fb-opt" onClick={() => handleRangeApply(minKey, maxKey, p.min, p.max)}>
+                        <button key={idx} className="fb-opt" onClick={() => handleRangeApply(String(minKey), String(maxKey), p.min, p.max)}>
                           {p.label}
                         </button>
                       ))}
