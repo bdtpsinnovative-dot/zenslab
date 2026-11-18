@@ -49,7 +49,6 @@ export function middleware(req: NextRequest) {
   // Never cache non-GET/HEAD (POST Server Actions, /api/algorithm/events, etc.)
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.headers.set('Cloudflare-CDN-Cache-Control', 'no-store')
-    res.headers.set('CDN-Cache-Control', 'no-store')
     return res
   }
 
@@ -59,14 +58,14 @@ export function middleware(req: NextRequest) {
   )
   if (isPrivate || isNextRscRequest(req)) {
     res.headers.set('Cloudflare-CDN-Cache-Control', 'no-store')
-    res.headers.set('CDN-Cache-Control', 'no-store')
     return res
   }
 
   if (PUBLIC_CACHEABLE_EXACT_PATHS.has(pathname)) {
     // Cache public HTML page shells on Cloudflare Edge for 1 year (purged via /api/revalidate)
+    // Only set Cloudflare-CDN-Cache-Control (not generic CDN-Cache-Control) so Vercel Edge
+    // still evaluates middleware per-request for RSC / _rsc / Server Actions.
     res.headers.set('Cloudflare-CDN-Cache-Control', 'public, max-age=31536000, stale-while-revalidate=86400')
-    res.headers.set('CDN-Cache-Control', 'public, max-age=31536000, stale-while-revalidate=86400')
     res.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
     return res
   }
