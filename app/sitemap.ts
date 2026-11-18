@@ -1,8 +1,10 @@
-import { MetadataRoute } from 'next';
-import { supabaseServer } from '@/lib/supabase-server';
+import { MetadataRoute } from 'next'
+import { getCachedSitemapProducts } from '@/lib/zenslab-cache'
+
+export const revalidate = 31536000
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://www.zen-slab.com';
+  const baseUrl = 'https://www.zen-slab.com'
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -41,26 +43,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.7,
     },
-  ];
+  ]
 
   try {
-    const { data: products } = await supabaseServer
-      .from('products')
-      .select('id, updated_at')
-      .eq('category_id', 'SLABS')
-      .order('updated_at', { ascending: false })
-      .limit(500);
+    const products = await getCachedSitemapProducts()
 
-    const productRoutes: MetadataRoute.Sitemap = (products || []).map((p) => ({
+    const productRoutes: MetadataRoute.Sitemap = (products || []).map((p: any) => ({
       url: `${baseUrl}/woodslab/product?id=${p.id}`,
       lastModified: p.updated_at ? new Date(p.updated_at) : new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
-    }));
+    }))
 
-    return [...staticRoutes, ...productRoutes];
+    return [...staticRoutes, ...productRoutes]
   } catch (error) {
-    console.error('Error generating dynamic sitemap:', error);
-    return staticRoutes;
+    console.error('Error generating dynamic sitemap:', error)
+    return staticRoutes
   }
 }
