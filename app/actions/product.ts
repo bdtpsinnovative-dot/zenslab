@@ -15,11 +15,26 @@ import {
   getCachedRangeValues,
   getCachedRecommendProductsMeta,
   getCategoryFilter,
-  type CategoryKey,
-  type FilterState,
 } from '@/lib/zenslab-cache'
 
-export type { CategoryKey, FilterState }
+export type CategoryKey = 'all' | 'slabs' | 'rough' | 'leg' | 'chair'
+
+export type FilterState = {
+  type: string
+  material: string
+  panel: string
+  status: string
+  lengthMin: string
+  lengthMax: string
+  widthMin: string
+  widthMax: string
+  thickMin: string
+  thickMax: string
+  priceMin: string
+  priceMax: string
+  q: string
+  discount: string
+}
 
 const TABLE = 'products'
 
