@@ -4,6 +4,9 @@ import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 
+const DEFAULT_SUPABASE_URL = 'https://gshppxgvdrmbfcxsxeph.supabase.co'
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzaHBweGd2ZHJtYmZjeHN4ZXBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMjQzODAsImV4cCI6MjEwNzYwMDM4MH0.lhpLOeb7oY0e-ZCIgSBgzHfPAgAzK8eqFgUPg9te8XM'
+
 // ---------------------------------------------------------
 // 1. LOGIN ACTION (สำหรับ LoginForm)
 // ---------------------------------------------------------
@@ -11,11 +14,11 @@ export async function login(prevState: any, formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL
+  const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY
+
   // สร้าง Client ชั่วคราวเพื่อคุยกับ Supabase
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient(url, anon)
 
   // สั่ง Login
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -68,9 +71,11 @@ export async function signOutAction() {
 
   if (token) {
     try {
+      const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL
+      const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY
       const supabase = createClient(
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_ANON_KEY!,
+        url,
+        anon,
         {
           global: { headers: { Authorization: `Bearer ${token}` } },
         }

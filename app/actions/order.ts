@@ -4,22 +4,35 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 
-// ตั้งค่า Omise
-const Omise = require('omise')
-const omise = Omise({
-  publicKey: process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY!,
-  secretKey: process.env.OMISE_SECRET_KEY!,
-})
+const DEFAULT_SUPABASE_URL = 'https://gshppxgvdrmbfcxsxeph.supabase.co'
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzaHBweGd2ZHJtYmZjeHN4ZXBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMjQzODAsImV4cCI6MjEwNzYwMDM4MH0.lhpLOeb7oY0e-ZCIgSBgzHfPAgAzK8eqFgUPg9te8XM'
+
+// Lazy Omise Client (ป้องกัน Error บน Edge runtime ตอน import)
+function getOmiseClient() {
+  const Omise = require('omise')
+  return Omise({
+    publicKey: process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY || 'pkey_test_66ij6jh1nq03bieeeic',
+    secretKey: process.env.OMISE_SECRET_KEY || 'skey_test_66ij5z9uq9d1myb17g0',
+  })
+}
 
 // Helper เชื่อมต่อ Supabase
 async function getSupabase() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('sb-access-token')?.value
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    token ? { global: { headers: { Authorization: `Bearer ${token}` } } } : {}
-  )
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('sb-access-token')?.value
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL
+    const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY
+    return createClient(
+      url,
+      anon,
+      token ? { global: { headers: { Authorization: `Bearer ${token}` } } } : {}
+    )
+  } catch (err) {
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL
+    const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY
+    return createClient(url, anon)
+  }
 }
 
 // ---------------------------------------------------------
@@ -197,6 +210,7 @@ export async function createDepositQR(productId: string | number) {
     const depositAmountSatang = 10000 
 
     // 2.3 สร้าง Source PromptPay
+    const omise = getOmiseClient()
     const source = await new Promise((resolve, reject) => {
       omise.sources.create({
         amount: depositAmountSatang,
@@ -265,6 +279,7 @@ export async function checkPaymentStatus(productId: string) {
 
   if (!orders || orders.length === 0) return { success: false, message: "No pending orders" }
 
+  const omise = getOmiseClient()
   for (const order of orders) {
       if (!order.payment_id) continue
       try {
