@@ -46,3 +46,5 @@ scripts/*.local.*
 *.key
 *.pem
 *.keystore
+
+.vercel
