@@ -20,6 +20,8 @@ const normalizeImg = (u: any) => {
 const currency = (n: any) =>
   n ? new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(n) : "฿0"
 
+export const runtime = 'edge'
+
 export default async function MyOrdersPage() {
   const { data: orders, success } = await getMyPaidOrders()
 

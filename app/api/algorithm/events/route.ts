@@ -20,6 +20,7 @@ import {
   isInternalIp,
 } from '@/src/lib/algorithm'
 
+export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 const EVENT_TYPES = new Set([

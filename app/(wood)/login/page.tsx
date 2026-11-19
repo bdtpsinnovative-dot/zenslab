@@ -5,6 +5,8 @@ import Navbar from '../../../src/components/Navbar';
 import LoginForm from '@/src/components/LoginForm'; // ✅ เรียกใช้ Form ที่เราแยกออกมา
 import { createClient } from '@supabase/supabase-js'; // ✅ เพิ่ม import
 
+export const runtime = 'edge';
+
 export default async function LoginPage() {
   // 1. ตรวจสอบ Cookie ก่อนเลย
   const cookieStore = await cookies();

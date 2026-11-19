@@ -6,6 +6,7 @@ import {
   zenslabProductTag,
 } from '@/lib/zenslab-cache'
 
+export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 function isAuthorized(req: NextRequest): boolean {

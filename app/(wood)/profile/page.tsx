@@ -6,6 +6,8 @@ import ProfileForm from '@/src/components/ProfileForm'
 import { supabaseServer } from '@/lib/supabase-server'
 import Navbar from '@/src/components/Navbar' // มั่นใจว่ามี Navbar เพื่อความสวยงาม
 
+export const runtime = 'edge'
+
 export const metadata = {
   title: 'My Profile | WOODSLABS',
 }

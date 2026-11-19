@@ -38,6 +38,10 @@ export const metadata: Metadata = {
     "เฟอร์นิเจอร์ไม้จริง",
     "zenslab by woodden"
   ],
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
   authors: [{ name: "ZENSLAB" }],
   creator: "ZENSLAB",
   openGraph: {

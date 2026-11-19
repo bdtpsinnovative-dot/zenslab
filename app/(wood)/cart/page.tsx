@@ -6,6 +6,8 @@ import CartList from '@/src/components/CartList'
 import { getCart } from '@/app/actions/cart'
 import Link from 'next/link'
 
+export const runtime = 'edge'
+
 export const metadata = {
   title: 'Shopping Cart | WOODSLABS',
 }
