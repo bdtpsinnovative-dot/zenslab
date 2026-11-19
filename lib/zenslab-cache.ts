@@ -111,24 +111,40 @@ export async function fetchLiveProductDetailStock(id: string | number) {
 // 1-YEAR CACHED METADATA (AUTO-PURGED BY ADMIN)
 // ============================================================
 
-export const getCachedActiveDiscounts = unstable_cache(
-  async () => {
-    const { data, error } = await supabaseServer
-      .from('discounts')
-      .select('*, discount_rules(*)')
-      .eq('active', true)
-    if (error) return []
-    return data || []
-  },
-  ['zenslab:active-discounts:v1'],
-  {
-    revalidate: ONE_YEAR_SECONDS,
-    tags: [ZENSLAB_CACHE_TAGS.DISCOUNTS],
+async function safeCached<T>(
+  fn: () => Promise<T>,
+  keyParts?: string[],
+  options?: { revalidate?: number | false; tags?: string[] }
+): Promise<T> {
+  try {
+    const cached = unstable_cache(fn, keyParts, options)
+    return await cached()
+  } catch (err) {
+    console.warn('[zenslab-cache] unstable_cache fallback to direct query:', err)
+    return await fn()
   }
-)
+}
+
+export async function getCachedActiveDiscounts() {
+  return safeCached(
+    async () => {
+      const { data, error } = await supabaseServer
+        .from('discounts')
+        .select('*, discount_rules(*)')
+        .eq('active', true)
+      if (error) return []
+      return data || []
+    },
+    ['zenslab:active-discounts:v1'],
+    {
+      revalidate: ONE_YEAR_SECONDS,
+      tags: [ZENSLAB_CACHE_TAGS.DISCOUNTS],
+    }
+  )
+}
 
 export async function getCachedMinMax(col: string, category: CategoryKey = 'all') {
-  const run = unstable_cache(
+  return safeCached(
     async () => {
       const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
 
@@ -172,12 +188,10 @@ export async function getCachedMinMax(col: string, category: CategoryKey = 'all'
       tags: [ZENSLAB_CACHE_TAGS.FILTERS, ZENSLAB_CACHE_TAGS.PRODUCTS],
     }
   )
-
-  return run()
 }
 
 export async function getCachedRangeValues(col: string, category: CategoryKey = 'all') {
-  const run = unstable_cache(
+  return safeCached(
     async () => {
       const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
 
@@ -198,12 +212,10 @@ export async function getCachedRangeValues(col: string, category: CategoryKey = 
       tags: [ZENSLAB_CACHE_TAGS.FILTERS, ZENSLAB_CACHE_TAGS.PRODUCTS],
     }
   )
-
-  return run()
 }
 
 export async function getCachedDistinctOptions(category: CategoryKey = 'all') {
-  const run = unstable_cache(
+  return safeCached(
     async () => {
       const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
 
@@ -241,12 +253,10 @@ export async function getCachedDistinctOptions(category: CategoryKey = 'all') {
       tags: [ZENSLAB_CACHE_TAGS.FILTERS, ZENSLAB_CACHE_TAGS.PRODUCTS],
     }
   )
-
-  return run()
 }
 
 export async function getCachedProductDetailMeta(id: string) {
-  const run = unstable_cache(
+  return safeCached(
     async () => {
       // Select ONLY product columns (never join stock here)
       const { data } = await supabaseServer.from(TABLE).select('*').eq('id', id).single()
@@ -258,8 +268,6 @@ export async function getCachedProductDetailMeta(id: string) {
       tags: [ZENSLAB_CACHE_TAGS.PRODUCTS, zenslabProductTag(id)],
     }
   )
-
-  return run()
 }
 
 export async function getCachedProductListMeta(params: {
@@ -293,7 +301,7 @@ export async function getCachedProductListMeta(params: {
     discount: filters.discount || 'all',
   })
 
-  const run = unstable_cache(
+  return safeCached(
     async () => {
       const offset = page * limit
       const { categoryId, specType, excludeCategories } = getCategoryFilter(category)
@@ -342,26 +350,26 @@ export async function getCachedProductListMeta(params: {
       tags: [ZENSLAB_CACHE_TAGS.PRODUCTS],
     }
   )
-
-  return run()
 }
 
-export const getCachedSitemapProducts = unstable_cache(
-  async () => {
-    const { data } = await supabaseServer
-      .from(TABLE)
-      .select('id, updated_at')
-      .eq('category_id', 'SLABS')
-      .order('updated_at', { ascending: false })
-      .limit(500)
-    return data || []
-  },
-  ['zenslab:sitemap-products:v1'],
-  {
-    revalidate: ONE_YEAR_SECONDS,
-    tags: [ZENSLAB_CACHE_TAGS.SITEMAP, ZENSLAB_CACHE_TAGS.PRODUCTS],
-  }
-)
+export async function getCachedSitemapProducts() {
+  return safeCached(
+    async () => {
+      const { data } = await supabaseServer
+        .from(TABLE)
+        .select('id, updated_at')
+        .eq('category_id', 'SLABS')
+        .order('updated_at', { ascending: false })
+        .limit(500)
+      return data || []
+    },
+    ['zenslab:sitemap-products:v1'],
+    {
+      revalidate: ONE_YEAR_SECONDS,
+      tags: [ZENSLAB_CACHE_TAGS.SITEMAP, ZENSLAB_CACHE_TAGS.PRODUCTS],
+    }
+  )
+}
 
 // ============================================================
 // 7-DAY (WEEKLY) CACHED RECOMMENDATION ALGORITHM (WITHOUT STOCK)
@@ -378,7 +386,7 @@ export async function getCachedRecommendProductsMeta(
   const curThick = Number(specs?.thickness_cm) || 0
   const catKey = String(categoryId || '')
 
-  const run = unstable_cache(
+  return safeCached(
     async () => {
       const currentNumId = Number(currentId)
       const finalResults: any[] = []
@@ -530,8 +538,6 @@ export async function getCachedRecommendProductsMeta(
       tags: [ZENSLAB_CACHE_TAGS.ALGORITHM],
     }
   )
-
-  return run()
 }
 
 // ============================================================
