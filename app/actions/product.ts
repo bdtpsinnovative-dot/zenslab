@@ -38,24 +38,30 @@ export type FilterState = {
 
 const TABLE = 'products'
 
+const DEFAULT_SUPABASE_URL = 'https://gshppxgvdrmbfcxsxeph.supabase.co'
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzaHBweGd2ZHJtYmZjeHN4ZXBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMjQzODAsImV4cCI6MjEwNzYwMDM4MH0.lhpLOeb7oY0e-ZCIgSBgzHfPAgAzK8eqFgUPg9te8XM'
+
 // 🔹 ฟังก์ชันสร้าง Client แบบอ่าน Cookie (สำหรับระบบ User/Auth)
 async function createAuthClient() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('sb-access-token')?.value
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('sb-access-token')?.value
+    if (!token) return null
 
-  if (!token) return null
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL
+    const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY
 
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
+    return createClient(url, anon, {
       global: {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       },
-    }
-  )
+    })
+  } catch (err) {
+    console.warn('[auth-client] Failed to create auth client:', err)
+    return null
+  }
 }
 
 function sortByLiveStockFirst(rows: any[]) {
@@ -211,27 +217,40 @@ export async function getDistinctOptions(category: CategoryKey = 'all') {
 // Metadata แคช 1 ปี + สต็อก/สาขา/สถานะ ดึงสดทุกครั้ง (ไม่แคชสต็อกเด็ดขาด)
 export async function getProductDetail(id?: string) {
   if (!id) return null
-  const [cachedMeta, liveStock] = await Promise.all([
-    getCachedProductDetailMeta(id),
-    fetchLiveProductDetailStock(id),
-  ])
+  try {
+    const [cachedMeta, liveStock] = await Promise.all([
+      getCachedProductDetailMeta(id),
+      fetchLiveProductDetailStock(id),
+    ])
 
-  if (!liveStock) return null
-  if (!cachedMeta) {
-    // Fallback กรณีเพิ่งเพิ่มสินค้าใหม่สดๆ และแคชยังไม่มี
-    const { data } = await supabaseServer
-      .from(TABLE)
-      .select('*, stock(qty, branch_id, branches(branch_name))')
-      .eq('id', id)
-      .single()
-    return data
-  }
+    if (!liveStock || !cachedMeta) {
+      // Fallback กรณีเพิ่งเพิ่มสินค้าใหม่ หรือแคช/สต็อกสดส่งกลับว่าง
+      const { data } = await supabaseServer
+        .from(TABLE)
+        .select('*, stock(qty, branch_id, branches(branch_name))')
+        .eq('id', id)
+        .maybeSingle()
+      return data || null
+    }
 
-  return {
-    ...cachedMeta,
-    status: liveStock.status ?? cachedMeta.status,
-    favorite_count: liveStock.favorite_count ?? cachedMeta.favorite_count,
-    stock: liveStock.stock ?? [],
+    return {
+      ...cachedMeta,
+      status: liveStock.status ?? cachedMeta.status,
+      favorite_count: liveStock.favorite_count ?? cachedMeta.favorite_count,
+      stock: liveStock.stock ?? [],
+    }
+  } catch (err) {
+    console.error('[getProductDetail] error:', err)
+    try {
+      const { data } = await supabaseServer
+        .from(TABLE)
+        .select('*, stock(qty, branch_id, branches(branch_name))')
+        .eq('id', id)
+        .maybeSingle()
+      return data || null
+    } catch {
+      return null
+    }
   }
 }
 
@@ -241,19 +260,24 @@ export async function getRecommendProducts(
   specs: any,
   categoryId?: string
 ) {
-  const recommendedMeta = await getCachedRecommendProductsMeta(currentId, specs, categoryId)
-  if (!recommendedMeta.length) return []
+  try {
+    const recommendedMeta = await getCachedRecommendProductsMeta(currentId, specs, categoryId)
+    if (!recommendedMeta || !recommendedMeta.length) return []
 
-  const liveMap = await fetchLiveStockMap(recommendedMeta.map((p: any) => p.id))
-  return recommendedMeta.map((prod: any) => {
-    const live = liveMap.get(String(prod.id))
-    if (!live) return { ...prod, stock: [] }
-    return {
-      ...prod,
-      status: live.status ?? prod.status,
-      stock: live.stock,
-    }
-  })
+    const liveMap = await fetchLiveStockMap(recommendedMeta.map((p: any) => p.id))
+    return recommendedMeta.map((prod: any) => {
+      const live = liveMap.get(String(prod.id))
+      if (!live) return { ...prod, stock: [] }
+      return {
+        ...prod,
+        status: live.status ?? prod.status,
+        stock: live.stock,
+      }
+    })
+  } catch (err) {
+    console.warn('[getRecommendProducts] error:', err)
+    return []
+  }
 }
 
 export async function purchaseProduct(id: number) {
@@ -271,33 +295,40 @@ export async function purchaseProduct(id: number) {
 // ==========================================
 
 export async function getProductLikeStatus(productId: string) {
-  const authClient = await createAuthClient()
-  let isLiked = false
-  let isLoggedIn = false
+  try {
+    const authClient = await createAuthClient()
+    let isLiked = false
+    let isLoggedIn = false
 
-  if (authClient) {
-    const {
-      data: { user },
-    } = await authClient.auth.getUser()
-    if (user) {
-      isLoggedIn = true
-      const { data: fav } = await authClient
-        .from('favorites')
-        .select('id')
-        .eq('product_id', productId)
-        .eq('user_id', user.id)
-        .single()
-      if (fav) isLiked = true
+    if (authClient) {
+      try {
+        const {
+          data: { user },
+        } = await authClient.auth.getUser()
+        if (user) {
+          isLoggedIn = true
+          const { data: fav } = await authClient
+            .from('favorites')
+            .select('id')
+            .eq('product_id', productId)
+            .eq('user_id', user.id)
+            .maybeSingle()
+          if (fav) isLiked = true
+        }
+      } catch (_) {}
     }
+
+    const { data: product } = await supabaseServer
+      .from(TABLE)
+      .select('favorite_count')
+      .eq('id', productId)
+      .maybeSingle()
+
+    return { count: product?.favorite_count || 0, isLiked, isLoggedIn }
+  } catch (err) {
+    console.warn('[getProductLikeStatus] error:', err)
+    return { count: 0, isLiked: false, isLoggedIn: false }
   }
-
-  const { data: product } = await supabaseServer
-    .from(TABLE)
-    .select('favorite_count')
-    .eq('id', productId)
-    .single()
-
-  return { count: product?.favorite_count || 0, isLiked, isLoggedIn }
 }
 
 export async function toggleProductLike(productId: string) {
