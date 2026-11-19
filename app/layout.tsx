@@ -10,6 +10,9 @@ import Script from "next/script";
 const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfair' });
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 
+export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.zen-slab.com'),
   alternates: {

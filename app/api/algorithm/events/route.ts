@@ -182,12 +182,11 @@ export async function POST(request: Request) {
       .single()
 
     if (insertError) {
-      console.error('[slab-algorithm-events] insert failed:', insertError)
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
+      console.warn('[slab-algorithm-events] insert failed:', insertError.message)
     }
 
     // 6. Build Response & Set Tracking Cookies
-    const response = NextResponse.json({ success: true, event_id: inserted?.id })
+    const response = NextResponse.json({ success: true, event_id: inserted?.id || null })
 
     const cookieOptions = {
       path: '/',
