@@ -7,8 +7,8 @@ import { Suspense } from "react";
 import { Playfair_Display, Inter } from "next/font/google";
 import Script from "next/script";
 
-const playfair = Playfair_Display({ subsets: ["latin"], weight: ["400", "700"], variable: '--font-playfair' });
-const inter = Inter({ subsets: ["latin"], weight: ["300", "400"], variable: '--font-inter' });
+const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfair' });
+const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.zen-slab.com'),
